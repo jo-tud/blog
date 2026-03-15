@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ category }} · {{ site.title }}{% endblock %}
+{% block content %}
+<h1>{{ category }}</h1>
+<ul class="post-list">
+    {% for post in posts %}
+    <li>
+        <span class="post-date">{{ post.date_str }}</span>
+        <a class="post-link" href="{{ site.url }}/posts/{{ post.year }}/{{ post.month }}/{{ post.slug }}/">{{ post.title }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

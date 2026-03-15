@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} · {{ site.title }}{% endblock %}
+{% block description %}{{ post.description }}{% endblock %}
+{% block content %}
+<article>
+    <h1>{{ post.title }}</h1>
+    <div class="meta">
+        {{ post.date_str }}
+        {% if post.categories %} ·
+        {% for cat in post.categories %}
+        <a href="{{ site.url }}/categories/{{ cat | lower }}/">{{ cat }}</a>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+        {% endif %}
+    </div>
+    {{ post.html | safe }}
+</article>
+{% endblock %}
