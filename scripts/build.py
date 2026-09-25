@@ -7,6 +7,7 @@ import shutil
 from datetime import datetime
 from email.utils import format_datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 import markdown
 import yaml
@@ -25,7 +26,7 @@ def load_config():
     """Load site config from environment or .env file."""
     env_path = ROOT / ".env"
     config = {
-        "url": "https://example.github.io/jpblog",
+        "url": "http://localhost:8000",
         "title": "My Blog",
         "author": "Author",
     }
@@ -47,6 +48,16 @@ def load_config():
     config["title"] = os.environ.get("SITE_TITLE", config["title"])
     config["author"] = os.environ.get("SITE_AUTHOR", config["author"])
     return config
+
+
+def prefix_root_links(html, base_path):
+    """Prefix root-relative links (href="/...", src="/...") with the site's base path.
+
+    Needed when the site is served from a subpath, e.g. jo-tud.github.io/blog/.
+    """
+    if not base_path:
+        return html
+    return re.sub(r'((?:href|src)=")/(?!/)', rf"\g<1>{base_path}/", html)
 
 
 def parse_post(filepath):
@@ -155,8 +166,12 @@ def build():
 
     # Set up Jinja2
     env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=False)
-    # Use empty base path for links (root-relative) — full URL only needed for RSS
-    site = {"url": "", "absolute_url": config["url"], "title": config["title"], "author": config["author"]}
+    # Links use the URL's path as base ("" at a domain root, "/blog" on a project page);
+    # the full URL is only needed for RSS and canonical links
+    base_path = urlparse(config["url"]).path.rstrip("/")
+    for item in posts + pages:
+        item["html"] = prefix_root_links(item["html"], base_path)
+    site = {"url": base_path, "absolute_url": config["url"], "title": config["title"], "author": config["author"]}
     common = {"site": site, "categories": all_categories, "pages": pages}
 
     # Generate index

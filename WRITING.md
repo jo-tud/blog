@@ -48,9 +48,11 @@ Use `##` for sections (H2) and `###` for subsections (H3). Don't use `#` (H1) �
 [another post](/posts/2026/03/the-architecture-of-good-defaults/)
 ```
 
+Write internal links from the site root (`/posts/…`, `/static/…`). The build prefixes them with the site's base path, so they also work when the blog is served from a subpath like `jo-tud.github.io/blog/`.
+
 ## Images
 
-Images go in `static/images/`. Reference them with an absolute path:
+Images go in `static/images/`. Reference them with a root-relative path:
 
 ```markdown
 ![Alt text describing the image](/static/images/my-diagram.png)

@@ -55,6 +55,8 @@ def serve(port=8000):
 
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
+    # Serve from the root, regardless of the production SITE_URL in .env
+    os.environ["SITE_URL"] = f"http://localhost:{port}"
 
     # Initial build
     rebuild()
