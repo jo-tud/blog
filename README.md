@@ -14,13 +14,21 @@ pip install -r requirements.txt
 # Build the site
 python scripts/build.py
 
-# Local preview with auto-rebuild
+# Local preview with auto-rebuild (http://localhost:8000)
 python scripts/serve.py
 ```
 
-## Writing a post
+## Workflow
 
-Create a markdown file in `content/posts/`:
+Drafts live outside this repo (in Obsidian) until they are ready. This repo is public, so anything committed here is readable by everyone, even posts marked `draft: true`.
+
+1. Write the post in Obsidian.
+2. When it's ready, copy it to `content/posts/YYYY-MM-DD-slug.md` and add the frontmatter below.
+3. Put images in `static/images/`.
+4. Preview locally with `python scripts/serve.py`.
+5. Commit and push to `main` — the site is built and deployed automatically.
+
+## Writing a post
 
 ```markdown
 ---
@@ -34,6 +42,10 @@ Your article body here...
 ```
 
 File naming: `YYYY-MM-DD-slug.md` — the date prefix is stripped from the URL.
+
+Set `draft: true` in the frontmatter to keep a post off the built site (the file itself stays public in the repo).
+
+See [WRITING.md](WRITING.md) for the full Markdown reference (images, code, footnotes, tables, …).
 
 ## Static pages
 
@@ -52,6 +64,16 @@ Rendered at `/<slug>/` and linked in the footer automatically.
 
 Push to GitHub with Pages enabled (Source: GitHub Actions). The included workflow builds and deploys automatically.
 
+Optional repository variables (Settings → Secrets and variables → Actions → Variables):
+
+| Variable | Default |
+|---|---|
+| `SITE_URL` | The GitHub Pages URL of this repo |
+| `SITE_TITLE` | `Blog` |
+| `SITE_AUTHOR` | `Author` |
+
+For local builds, the same keys can go in a `.env` file (not committed).
+
 ## Structure
 
 ```
@@ -61,4 +83,5 @@ templates/           ← HTML templates (Jinja2)
 static/images/       ← Images and assets
 scripts/build.py     ← Static site generator
 scripts/serve.py     ← Local dev server
+WRITING.md           ← Markdown reference for posts
 ```

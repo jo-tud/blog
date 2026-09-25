@@ -21,11 +21,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - id: pages
+        uses: actions/configure-pages@v5
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Build site
         env:
-          SITE_URL: ${{ vars.SITE_URL || '' }}
+          SITE_URL: ${{ vars.SITE_URL || steps.pages.outputs.base_url }}
           SITE_TITLE: ${{ vars.SITE_TITLE || 'Blog' }}
           SITE_AUTHOR: ${{ vars.SITE_AUTHOR || 'Author' }}
         run: python scripts/build.py
