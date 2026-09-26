@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ site.title }}{% endblock %}</title>
-    <meta name="description" content="{% block description %}{{ site.title }}{% endblock %}">
+    <meta name="description" content="{% block description %}{{ site.subtitle or site.title }}{% endblock %}">
     <meta name="author" content="{{ site.author }}">
     {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
     <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ site.absolute_url }}/feed.xml">
@@ -74,6 +74,12 @@
         header h1 a {
             color: var(--fg);
             text-decoration: none;
+        }
+        .site-subtitle {
+            margin: -4px 0 12px 0;
+            color: var(--fg-dim);
+            font-size: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
         }
         nav {
             display: flex;
@@ -235,6 +241,7 @@
     <div class="container">
         <header>
             <h1><a href="{{ site.url }}/">{{ site.title }}</a></h1>
+            {% if site.subtitle %}<p class="site-subtitle">{{ site.subtitle }}</p>{% endif %}
             <nav>
                 {% for cat in categories %}
                 <a href="{{ site.url }}/categories/{{ cat | lower }}/"{% if active_category == cat %} class="active"{% endif %}>{{ cat }}</a>

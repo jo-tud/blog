@@ -29,6 +29,7 @@ jobs:
         env:
           SITE_URL: ${{ vars.SITE_URL || steps.pages.outputs.base_url }}
           SITE_TITLE: ${{ vars.SITE_TITLE || 'Blog' }}
+          SITE_SUBTITLE: ${{ vars.SITE_SUBTITLE }}
           SITE_AUTHOR: ${{ vars.SITE_AUTHOR || 'Author' }}
         run: python scripts/build.py
       - uses: actions/upload-pages-artifact@v3

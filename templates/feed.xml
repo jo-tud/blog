@@ -3,7 +3,7 @@
 <channel>
     <title>{{ site.title }}</title>
     <link>{{ site.absolute_url }}</link>
-    <description>{{ site.title }}</description>
+    <description>{{ site.subtitle or site.title }}</description>
     <atom:link href="{{ site.absolute_url }}/feed.xml" rel="self" type="application/rss+xml"/>
     {% for post in posts %}
     <item>

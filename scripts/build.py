@@ -28,6 +28,7 @@ def load_config():
     config = {
         "url": "http://localhost:8000",
         "title": "My Blog",
+        "subtitle": "",
         "author": "Author",
     }
     if env_path.exists():
@@ -41,11 +42,14 @@ def load_config():
                 config["url"] = val.rstrip("/")
             elif key == "SITE_TITLE":
                 config["title"] = val
+            elif key == "SITE_SUBTITLE":
+                config["subtitle"] = val
             elif key == "SITE_AUTHOR":
                 config["author"] = val
     # Override from env vars
     config["url"] = os.environ.get("SITE_URL", config["url"]).rstrip("/")
     config["title"] = os.environ.get("SITE_TITLE", config["title"])
+    config["subtitle"] = os.environ.get("SITE_SUBTITLE", config["subtitle"])
     config["author"] = os.environ.get("SITE_AUTHOR", config["author"])
     return config
 
@@ -171,7 +175,7 @@ def build():
     base_path = urlparse(config["url"]).path.rstrip("/")
     for item in posts + pages:
         item["html"] = prefix_root_links(item["html"], base_path)
-    site = {"url": base_path, "absolute_url": config["url"], "title": config["title"], "author": config["author"]}
+    site = {"url": base_path, "absolute_url": config["url"], "title": config["title"], "subtitle": config["subtitle"], "author": config["author"]}
     common = {"site": site, "categories": all_categories, "pages": pages}
 
     # Generate index

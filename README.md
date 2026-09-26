@@ -70,6 +70,7 @@ Optional repository variables (Settings → Secrets and variables → Actions �
 |---|---|
 | `SITE_URL` | The GitHub Pages URL of this repo |
 | `SITE_TITLE` | `Blog` |
+| `SITE_SUBTITLE` | none (shown under the title, used as meta and RSS description) |
 | `SITE_AUTHOR` | `Author` |
 
 For local builds, the same keys can go in a `.env` file (not committed). Links are built from the path part of `SITE_URL` (e.g. `/blog`), so the site works both at a domain root and on a project page. `serve.py` always builds for `http://localhost:<port>`.
