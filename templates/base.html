@@ -43,6 +43,16 @@
                 --code-bg: #20201e;
             }
         }
+        /* #002fa7 sits exactly on the sRGB gamut edge. Wide-gamut (P3) screens get the
+           same lightness and hue with more chroma, closer to the pigment. */
+        @supports (color: oklch(0 0 0)) {
+            @media (color-gamut: p3) {
+                :root { --accent: oklch(0.379 0.235 263.2); }
+            }
+            @media (color-gamut: p3) and (prefers-color-scheme: dark) {
+                :root { --accent: oklch(0.675 0.183 270.2); }
+            }
+        }
         *, *::before, *::after { box-sizing: border-box; }
         html { background: var(--bg); }
         body {
