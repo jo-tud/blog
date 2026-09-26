@@ -97,4 +97,5 @@ static/images/       ← Images and assets
 scripts/build.py     ← Static site generator
 scripts/serve.py     ← Local dev server
 WRITING.md           ← Markdown reference for posts
+illustrations/       ← Parameter sweeps on Replicate image models (sweep.py); raw runs are not committed
 ```
