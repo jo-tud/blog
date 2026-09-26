@@ -43,6 +43,16 @@ Your article body here...
 
 File naming: `YYYY-MM-DD-slug.md` — the date prefix is stripped from the URL.
 
+Optional fields, each shown only when set:
+
+| Field | Effect |
+|---|---|
+| `revised: 2026-10-09` | "revised …" in the header, linked to the file's git history |
+| `epistemic: "…"` | An "epistemic status" line under the title |
+| `toc: true` | A collapsible table of contents |
+
+Footnotes (`[^1]`) appear as sidenotes on wide screens and as a list at the end otherwise. Every post ends with a "cite as" block (with BibTeX) and carries Google Scholar meta tags.
+
 Set `draft: true` in the frontmatter to keep a post off the built site (the file itself stays public in the repo).
 
 See [WRITING.md](WRITING.md) for the full Markdown reference (images, code, footnotes, tables, …).
