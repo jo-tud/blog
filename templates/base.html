@@ -189,7 +189,7 @@
             <div class="masthead">
                 <a class="brand" href="{{ site.url }}/">{{ site.mark }}{{ site.title }}</a>
                 <nav>
-                    {% for page in pages %}<a href="{{ site.url }}/{{ page.slug }}/">{{ page.title | lower }}</a>{% endfor %}
+                    {% for page in pages if page.nav %}<a href="{{ site.url }}/{{ page.slug }}/">{{ page.title | lower }}</a>{% endfor %}
                     <a href="{{ site.url }}/feed.xml">rss</a>
                 </nav>
             </div>

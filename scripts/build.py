@@ -265,6 +265,9 @@ def build():
             pages.append({
                 "title": meta.get("title", f.stem),
                 "slug": meta.get("slug", f.stem),
+                # nav: false keeps a page out of the header (e.g. Impressum: footer only)
+                "nav": meta.get("nav", True),
+                "lang": meta.get("lang", DEFAULT_LANG),
                 "html": md_parser.convert(match.group(2)),
             })
 
@@ -317,7 +320,7 @@ def build():
     for page in pages:
         page_dir = SITE_DIR / page["slug"]
         page_dir.mkdir(parents=True, exist_ok=True)
-        html = tpl.render(page=page, **common)
+        html = tpl.render(page=page, lang=page["lang"], **common)
         (page_dir / "index.html").write_text(html, encoding="utf-8")
 
     # Generate RSS feed
