@@ -7,29 +7,33 @@
     <meta name="citation_publication_date" content="{{ post.date.strftime('%Y/%m/%d') }}">
     <meta name="citation_journal_title" content="{{ site.title }}">
     {% if canonical_url %}<meta name="citation_public_url" content="{{ canonical_url }}">{% endif %}
-{% endblock %}
+    <meta name="citation_language" content="{{ post.lang }}">
+    {% if post.versions | length > 1 %}{% for v in post.versions %}<link rel="alternate" hreflang="{{ v.lang }}" href="{{ site.absolute_url }}/{{ v.path }}">
+    {% endfor %}{% endif %}{% endblock %}
 {% block content %}
 <article>
     <h1>{{ post.title }}</h1>
     <div class="meta">
         <span><time datetime="{{ post.date_str }}">{{ post.date_str }}</time></span>
-        {% if post.revised %}<span><a href="{{ site.repo }}/commits/main/content/posts/{{ post.source }}">revised {{ post.revised }}</a></span>{% endif %}
+        {% if post.revised %}<span><a href="{{ site.repo }}/commits/main/content/posts/{{ post.source }}">{{ t.revised }} {{ post.revised }}</a></span>{% endif %}
+        {% if post.versions | length > 1 %}<span class="langs">{% for v in post.versions %}{% if v is sameas post %}<b>{{ v.lang_name }}</b>{% else %}<a href="{{ site.url }}/{{ v.path }}" lang="{{ v.lang }}" hreflang="{{ v.lang }}">{{ v.lang_name }}</a>{% endif %}{% endfor %}</span>{% endif %}
         {% for cat in post.categories %}<span><a href="{{ site.url }}/categories/{{ cat | lower }}/">{{ cat | lower }}</a></span>{% endfor %}
     </div>
-    {% if post.epistemic %}<p class="epistemic"><b>epistemic status</b>{{ post.epistemic }}</p>{% endif %}
+    {% if post.epistemic %}<p class="epistemic"><b>{{ t.epistemic }}</b>{{ post.epistemic }}</p>{% endif %}
     {{ post.motif | safe }}
-    {% if post.toc %}<details class="toc"><summary>contents</summary>{{ post.toc | safe }}</details>{% endif %}
+    {% if post.toc %}<details class="toc"><summary>{{ t.contents }}</summary>{{ post.toc | safe }}</details>{% endif %}
     <div class="body">
     {{ post.html | safe }}
     </div>
     <section class="cite">
-        <h2>cite as</h2>
-        <p>{{ site.author }} ({{ post.year }}). “{{ post.title }}”. <i>{{ site.title }}</i>, {{ post.date_str }}{% if post.revised %}, revised {{ post.revised }}{% endif %}. <a href="{{ canonical_url }}">{{ canonical_url }}</a></p>
-        <details><summary>bibtex</summary><pre>@misc{ {{- site.author.split()[-1] | lower }}{{ post.year }}{{ post.slug.split('-')[0] }},
+        <h2>{{ t.cite }}</h2>
+        <p>{{ site.author }} ({{ post.year }}). “{{ post.title }}”. <i>{{ site.title }}</i>, {{ post.date_str }}{% if post.revised %}, {{ t.revised }} {{ post.revised }}{% endif %}. <a href="{{ canonical_url }}">{{ canonical_url }}</a></p>
+        <details><summary>{{ t.bibtex }}</summary><pre>@misc{ {{- site.author.split()[-1] | lower }}{{ post.year }}{{ post.slug.split('-')[0] }}{% if post.lang != 'en' %}{{ post.lang }}{% endif %},
   author = { {{- site.author -}} },
   title  = { {{- post.title -}} },
   year   = { {{- post.year -}} },
   month  = { {{- post.month -}} },
+  language = { {{- post.lang_name | lower -}} },
   howpublished = {\url{ {{- canonical_url -}} }},
   note   = {{ '{' }}{{ site.title }}{% if post.revised %}, revised {{ post.revised }}{% endif %}{{ '}' }}
 }</pre></details>

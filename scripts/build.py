@@ -22,6 +22,17 @@ TEMPLATES_DIR = ROOT / "templates"
 STATIC_DIR = ROOT / "static"
 SITE_DIR = ROOT / "site"
 
+# Posts are in English unless the filename says otherwise: 2026-10-02-slug.de.md is the
+# German version of 2026-10-02-slug.md and is served at /posts/2026/10/slug/de/.
+DEFAULT_LANG = "en"
+LANG_NAMES = {"en": "English", "de": "Deutsch", "fr": "Français", "es": "Español", "it": "Italiano"}
+LABELS = {
+    "en": {"revised": "revised", "epistemic": "epistemic status", "contents": "contents",
+           "cite": "cite as", "bibtex": "bibtex"},
+    "de": {"revised": "überarbeitet", "epistemic": "epistemischer Status", "contents": "Inhalt",
+           "cite": "zitieren als", "bibtex": "bibtex"},
+}
+
 
 def load_config():
     """Load site config from environment or .env file."""
@@ -133,8 +144,16 @@ def parse_post(filepath):
     else:
         date = datetime(date.year, date.month, date.day)
 
+    # Language suffix in the filename (slug.de.md), overridable with `lang:`
+    stem = filepath.stem
+    lang = DEFAULT_LANG
+    m = re.match(r"^(.*)\.([a-z]{2})$", stem)
+    if m:
+        stem, lang = m.group(1), m.group(2)
+    lang = meta.get("lang", lang)
+
     # Generate slug from filename
-    slug = filepath.stem
+    slug = stem
     # Strip date prefix if present (e.g., 2026-03-01-title -> title)
     slug = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", slug)
 
@@ -184,6 +203,9 @@ def parse_post(filepath):
         "epistemic": meta.get("epistemic"),
         "toc": md.toc if meta.get("toc") else "",
         "source": filepath.name,
+        "key": stem,
+        "lang": lang,
+        "lang_name": LANG_NAMES.get(lang, lang),
         "motif": sparse_strip(slug, cols=36, cls="sparse motif"),
     }
 
@@ -208,6 +230,21 @@ def build():
         if post and not post["draft"]:
             posts.append(post)
     posts.sort(key=lambda p: p["date"], reverse=True)
+
+    # Group language versions of the same post. The English version (or, if there is
+    # none, the first one) is the primary: it gets the plain URL and is the one listed.
+    groups = {}
+    for post in posts:
+        groups.setdefault(post["key"], []).append(post)
+    for versions in groups.values():
+        versions.sort(key=lambda p: (p["lang"] != DEFAULT_LANG, p["lang"]))
+        primary = versions[0]
+        base = f"posts/{primary['year']}/{primary['month']}/{primary['slug']}/"
+        for v in versions:
+            v["path"] = base if v is primary else f"{base}{v['lang']}/"
+            v["versions"] = versions
+    translations = posts
+    posts = [p for p in posts if p is p["versions"][0]]
 
     # Collect all categories
     all_categories = sorted({cat for post in posts for cat in post["categories"]})
@@ -236,7 +273,7 @@ def build():
     # Links use the URL's path as base ("" at a domain root, "/blog" on a project page);
     # the full URL is only needed for RSS and canonical links
     base_path = urlparse(config["url"]).path.rstrip("/")
-    for item in posts + pages:
+    for item in translations + pages:
         item["html"] = prefix_root_links(item["html"], base_path)
     site = {"url": base_path, "absolute_url": config["url"], "title": config["title"], "subtitle": config["subtitle"], "author": config["author"],
             "repo": config["repo"], "mark": sparse_strip(config["title"], cols=5, gap=8, r=1.5)}
@@ -249,12 +286,14 @@ def build():
 
     # Generate individual posts
     tpl = env.get_template("post.html")
-    for post in posts:
-        post_dir = SITE_DIR / "posts" / post["year"] / post["month"] / post["slug"]
+    for post in translations:
+        post_dir = SITE_DIR / post["path"]
         post_dir.mkdir(parents=True, exist_ok=True)
         html = tpl.render(
             post=post,
-            canonical_url=f"{config['url'].rstrip('/')}/posts/{post['year']}/{post['month']}/{post['slug']}/",
+            lang=post["lang"],
+            t=LABELS.get(post["lang"], LABELS[DEFAULT_LANG]),
+            canonical_url=f"{config['url'].rstrip('/')}/{post['path']}",
             **common,
         )
         (post_dir / "index.html").write_text(html, encoding="utf-8")

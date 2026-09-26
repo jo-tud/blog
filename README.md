@@ -51,6 +51,8 @@ Optional fields, each shown only when set:
 | `epistemic: "…"` | An "epistemic status" line under the title |
 | `toc: true` | A collapsible table of contents |
 
+Posts are in English by default. A translation sits next to the original with a language suffix: `2026-10-02-slug.de.md` is the German version of `2026-10-02-slug.md`, served at `/posts/2026/10/slug/de/`. Both versions link to each other; the index and the RSS feed list the English one. A post that exists only in another language uses the suffix too (or `lang: de` in the front matter).
+
 Footnotes (`[^1]`) appear as sidenotes on wide screens and as a list at the end otherwise. Every post ends with a "cite as" block (with BibTeX) and carries Google Scholar meta tags.
 
 Set `draft: true` in the frontmatter to keep a post off the built site (the file itself stays public in the repo).

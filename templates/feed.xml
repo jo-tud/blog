@@ -8,8 +8,8 @@
     {% for post in posts %}
     <item>
         <title>{{ post.title }}</title>
-        <link>{{ site.absolute_url }}/posts/{{ post.year }}/{{ post.month }}/{{ post.slug }}/</link>
-        <guid>{{ site.absolute_url }}/posts/{{ post.year }}/{{ post.month }}/{{ post.slug }}/</guid>
+        <link>{{ site.absolute_url }}/{{ post.path }}</link>
+        <guid>{{ site.absolute_url }}/{{ post.path }}</guid>
         <pubDate>{{ post.rss_date }}</pubDate>
         <description><![CDATA[{{ post.html }}]]></description>
     </item>

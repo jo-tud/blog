@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang | default('en') }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -112,6 +112,11 @@
         .meta { font-family: var(--mono); font-size: 13px; color: var(--fg-faint); line-height: 1.7; }
         .meta span + span::before { content: " · "; }
         .meta a { color: var(--fg-dim); }
+        .langs b { font-weight: 400; color: var(--fg-dim); }
+        .meta .langs a + b::before, .meta .langs b + a::before, .meta .langs a + a::before { content: " / "; color: var(--fg-faint); }
+        .post-list .langs { margin-left: 10px; font-family: var(--mono); font-size: 12px; }
+        .post-list .langs a { color: var(--fg-faint); text-decoration: none; margin-right: 6px; }
+        .post-list .langs a:hover { color: var(--fg); }
         .epistemic { margin: 10px 0 0; font-size: 15px; color: var(--fg-dim); }
         .epistemic b { font-family: var(--mono); font-size: 13px; font-weight: 400; color: var(--fg-faint); margin-right: 6px; }
         .toc { margin: 28px 0 8px; font-size: 15px; }
@@ -184,7 +189,6 @@
             <div class="masthead">
                 <a class="brand" href="{{ site.url }}/">{{ site.mark }}{{ site.title }}</a>
                 <nav>
-                    <a href="{{ site.url }}/">essays</a>
                     {% for page in pages %}<a href="{{ site.url }}/{{ page.slug }}/">{{ page.title | lower }}</a>{% endfor %}
                     <a href="{{ site.url }}/feed.xml">rss</a>
                 </nav>

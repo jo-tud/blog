@@ -6,12 +6,12 @@
     {% for post in posts %}
     <li>
         <span class="post-date">{{ post.date_str }}</span>
-        <a class="post-link" href="{{ site.url }}/posts/{{ post.year }}/{{ post.month }}/{{ post.slug }}/">{{ post.title }}</a>
+        <span class="post-head"><a class="post-link" href="{{ site.url }}/{{ post.path }}"{% if post.lang != "en" %} lang="{{ post.lang }}"{% endif %}>{{ post.title }}</a>{% if post.versions | length > 1 %}<span class="langs">{% for v in post.versions[1:] %}<a href="{{ site.url }}/{{ v.path }}" lang="{{ v.lang }}">{{ v.lang }}</a>{% endfor %}</span>{% endif %}</span>
         {% if post.description %}<p class="post-desc">{{ post.description }}</p>{% endif %}
     </li>
     {% endfor %}
 </ul>
 {% else %}
-<p class="empty">Nothing here yet. The first essay is in the works.</p>
+<p class="empty">Nothing here yet.</p>
 {% endif %}
 {% endblock %}

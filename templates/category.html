@@ -6,7 +6,7 @@
     {% for post in posts %}
     <li>
         <span class="post-date">{{ post.date_str }}</span>
-        <a class="post-link" href="{{ site.url }}/posts/{{ post.year }}/{{ post.month }}/{{ post.slug }}/">{{ post.title }}</a>
+        <a class="post-link" href="{{ site.url }}/{{ post.path }}">{{ post.title }}</a>
     </li>
     {% endfor %}
 </ul>
