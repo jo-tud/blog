@@ -70,16 +70,23 @@ def prefix_root_links(html, base_path):
 def sparse_strip(seed, cols, rows=3, gap=10, r=1.2, cls="sparse"):
     """Inline SVG: a faint grid of dots with a single highlighted one (the "reward").
 
-    The position of the reward is derived from `seed`, so every post gets its own pattern.
+    The reward is derived from `seed`, so every post gets its own pattern. It never sits
+    in the middle row or the middle third of the columns: a reward that shows up where
+    you would expect it is not a sparse one.
     """
     h = int(hashlib.sha1(seed.encode("utf-8")).hexdigest(), 16)
-    hit = h % (cols * rows)
+    candidates = [
+        i for i in range(cols * rows)
+        if not (rows % 2 and i // cols == rows // 2)
+        and not (cols / 3 <= i % cols < 2 * cols / 3)
+    ]
+    hit = candidates[h % len(candidates)]
     w, ht = cols * gap, rows * gap
     dots = []
     for i in range(cols * rows):
         x, y = (i % cols) * gap + gap / 2, (i // cols) * gap + gap / 2
         mark = ' class="hit"' if i == hit else ""
-        rad = r * 1.6 if i == hit else r
+        rad = r * 2.4 if i == hit else r
         dots.append(f'<circle cx="{x:g}" cy="{y:g}" r="{rad:g}"{mark}/>')
     return (f'<svg class="{cls}" viewBox="0 0 {w} {ht}" width="{w}" height="{ht}" '
             f'aria-hidden="true">{"".join(dots)}</svg>')
