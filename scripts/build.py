@@ -222,6 +222,9 @@ def build():
     # Copy static assets
     if STATIC_DIR.exists():
         shutil.copytree(STATIC_DIR, SITE_DIR / "static")
+        # Browsers look for /favicon.ico at the root regardless of <link> tags
+        if (STATIC_DIR / "favicon.ico").exists():
+            shutil.copy(STATIC_DIR / "favicon.ico", SITE_DIR / "favicon.ico")
 
     # Load and parse posts
     posts = []

@@ -9,6 +9,9 @@
     {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
     <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ site.absolute_url }}/feed.xml">
     <link rel="stylesheet" href="{{ site.url }}/highlight.css">
+    <link rel="icon" href="{{ site.url }}/favicon.ico" sizes="32x32">
+    <link rel="icon" href="{{ site.url }}/static/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{ site.url }}/static/apple-touch-icon.png">
     {% block head %}{% endblock %}
     <style>
         /* IBM Plex, self-hosted (SIL Open Font License) */
