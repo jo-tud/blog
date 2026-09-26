@@ -41,6 +41,8 @@ HERE = Path(__file__).resolve().parent
 RUNS = HERE / "runs"
 API = "https://api.replicate.com/v1"
 FONT = HERE.parent / "static" / "fonts" / "IBMPlexMono-Regular.ttf"
+# Replicate sits behind Cloudflare, which rejects the default Python-urllib user agent
+USER_AGENT = "sparserewards-illustrations/1.0"
 
 
 def token():
@@ -62,13 +64,32 @@ def api(method, path, body=None, wait=False):
                                  data=json.dumps(body).encode() if body is not None else None)
     req.add_header("Authorization", f"Bearer {token()}")
     req.add_header("Content-Type", "application/json")
+    req.add_header("User-Agent", USER_AGENT)
     if wait:
         req.add_header("Prefer", "wait=60")
-    try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            return json.load(r)
-    except urllib.error.HTTPError as e:
-        sys.exit(f"{method} {url}: HTTP {e.code}: {e.read().decode(errors='replace')[:500]}")
+    for attempt in range(10):
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode(errors="replace")
+            if e.code == 429:
+                # Throttled (e.g. 6 predictions/minute while the account has < $5 credit)
+                try:
+                    wait_s = int(json.loads(detail).get("retry_after", 10))
+                except ValueError:
+                    wait_s = 10
+                print(f"  rate limited, waiting {wait_s + 1} s")
+                time.sleep(wait_s + 1)
+                continue
+            sys.exit(f"{method} {url}: HTTP {e.code}: {detail[:500]}")
+    sys.exit(f"{method} {url}: still rate limited after 10 attempts")
+
+
+def download(url, path):
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        path.write_bytes(r.read())
 
 
 def latest_version(model):
@@ -163,7 +184,7 @@ def cmd_run(args):
         for i, url in enumerate(outputs):
             ext = Path(url.split("?")[0]).suffix or ".png"
             name = f"{n:03d}" + (f"-{i}" if len(outputs) > 1 else "") + ext
-            urllib.request.urlretrieve(url, run_dir / name)
+            download(url, run_dir / name)
             files.append(name)
         seconds = (pred.get("metrics") or {}).get("predict_time") or 0
         total_time += seconds
@@ -183,13 +204,14 @@ def make_contact_sheet(run_dir, thumb=320):
         meta = json.loads(meta_file.read_text())
         for f in meta["files"]:
             if Path(f).suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
-                label = f"{Path(f).stem}  " + "  ".join(f"{k}={v}" for k, v in meta["varied"].items())
+                label = "\n".join([Path(f).stem] + [f"{k}={v}" for k, v in meta["varied"].items()])
                 entries.append((run_dir / f, label))
     if not entries:
         return
     cols = min(4, len(entries))
     rows = -(-len(entries) // cols)
-    pad, text_h = 12, 22
+    pad = 12
+    text_h = 8 + 15 * max(label.count("\n") + 1 for _, label in entries)
     sheet = Image.new("RGB", (cols * (thumb + pad) + pad, rows * (thumb + text_h + pad) + pad), "#e9e9e4")
     draw = ImageDraw.Draw(sheet)
     font = ImageFont.truetype(str(FONT), 12) if FONT.exists() else ImageFont.load_default()
@@ -199,7 +221,7 @@ def make_contact_sheet(run_dir, thumb=320):
         x = pad + (i % cols) * (thumb + pad)
         y = pad + (i // cols) * (thumb + text_h + pad)
         sheet.paste(img, (x, y))
-        draw.text((x, y + thumb + 4), label, fill="#56564f", font=font)
+        draw.multiline_text((x, y + thumb + 4), label, fill="#56564f", font=font, spacing=3)
     out = run_dir / "contact.jpg"
     sheet.save(out, quality=90)
     print(f"Contact sheet: {out}")
