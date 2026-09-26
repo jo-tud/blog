@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Static site generator. Converts markdown posts to HTML."""
 
+import hashlib
 import os
 import re
 import shutil
@@ -30,6 +31,7 @@ def load_config():
         "title": "My Blog",
         "subtitle": "",
         "author": "Author",
+        "repo": "https://github.com/jo-tud/blog",
     }
     if env_path.exists():
         for line in env_path.read_text().splitlines():
@@ -51,6 +53,7 @@ def load_config():
     config["title"] = os.environ.get("SITE_TITLE", config["title"])
     config["subtitle"] = os.environ.get("SITE_SUBTITLE", config["subtitle"])
     config["author"] = os.environ.get("SITE_AUTHOR", config["author"])
+    config["repo"] = os.environ.get("SITE_REPO", config["repo"]).rstrip("/")
     return config
 
 
@@ -62,6 +65,47 @@ def prefix_root_links(html, base_path):
     if not base_path:
         return html
     return re.sub(r'((?:href|src)=")/(?!/)', rf"\g<1>{base_path}/", html)
+
+
+def sparse_strip(seed, cols, rows=3, gap=10, r=1.2, cls="sparse"):
+    """Inline SVG: a faint grid of dots with a single highlighted one (the "reward").
+
+    The position of the reward is derived from `seed`, so every post gets its own pattern.
+    """
+    h = int(hashlib.sha1(seed.encode("utf-8")).hexdigest(), 16)
+    hit = h % (cols * rows)
+    w, ht = cols * gap, rows * gap
+    dots = []
+    for i in range(cols * rows):
+        x, y = (i % cols) * gap + gap / 2, (i // cols) * gap + gap / 2
+        mark = ' class="hit"' if i == hit else ""
+        rad = r * 1.6 if i == hit else r
+        dots.append(f'<circle cx="{x:g}" cy="{y:g}" r="{rad:g}"{mark}/>')
+    return (f'<svg class="{cls}" viewBox="0 0 {w} {ht}" width="{w}" height="{ht}" '
+            f'aria-hidden="true">{"".join(dots)}</svg>')
+
+
+def footnotes_to_sidenotes(html):
+    """Copy each footnote next to its reference as a sidenote.
+
+    The footnote list at the end stays in place; CSS shows sidenotes on wide screens
+    and the list on narrow ones.
+    """
+    notes = {}
+    for num, body in re.findall(r'<li id="fn:([^"]+)">\s*(.*?)\s*</li>', html, re.DOTALL):
+        body = re.sub(r'&#160;<a class="footnote-backref"[^>]*>.*?</a>', "", body)
+        body = re.sub(r"</p>\s*<p>", "<br>", body)
+        notes[num] = re.sub(r"</?p>", "", body).strip()
+
+    def insert(m):
+        num = m.group(1)
+        if num not in notes:
+            return m.group(0)
+        return (f'{m.group(0)}<span class="sidenote"><span class="sn-num">{m.group(2)}</span> '
+                f"{notes[num]}</span>")
+
+    return re.sub(r'<sup id="fnref:([^"]+)"><a class="footnote-ref" href="[^"]*">([^<]*)</a></sup>',
+                  insert, html)
 
 
 def parse_post(filepath):
@@ -99,12 +143,18 @@ def parse_post(filepath):
         ],
         extension_configs={
             "codehilite": {"css_class": "highlight", "guess_lang": False},
+            "toc": {"permalink": "¶", "permalink_class": "anchor", "permalink_title": "Link to this section"},
         },
     )
     html = md.convert(body)
+    html = footnotes_to_sidenotes(html)
 
     # Wrap tables in scrollable container for mobile
     html = html.replace("<table>", '<div class="table-wrap"><table>').replace("</table>", "</table></div>")
+
+    revised = meta.get("revised")
+    if revised and not isinstance(revised, str):
+        revised = revised.strftime("%Y-%m-%d")
 
     categories = meta.get("categories", [])
     if isinstance(categories, str):
@@ -122,6 +172,12 @@ def parse_post(filepath):
         "categories": categories,
         "html": html,
         "draft": meta.get("draft", False),
+        # Optional reader-facing metadata; each is only shown when set
+        "revised": revised,
+        "epistemic": meta.get("epistemic"),
+        "toc": md.toc if meta.get("toc") else "",
+        "source": filepath.name,
+        "motif": sparse_strip(slug, cols=36, cls="sparse motif"),
     }
 
 
@@ -175,7 +231,8 @@ def build():
     base_path = urlparse(config["url"]).path.rstrip("/")
     for item in posts + pages:
         item["html"] = prefix_root_links(item["html"], base_path)
-    site = {"url": base_path, "absolute_url": config["url"], "title": config["title"], "subtitle": config["subtitle"], "author": config["author"]}
+    site = {"url": base_path, "absolute_url": config["url"], "title": config["title"], "subtitle": config["subtitle"], "author": config["author"],
+            "repo": config["repo"], "mark": sparse_strip(config["title"], cols=5, gap=8, r=1.5)}
     common = {"site": site, "categories": all_categories, "pages": pages}
 
     # Generate index

@@ -1,12 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ site.title }}{% endblock %}
 {% block content %}
+{% if posts %}
 <ul class="post-list">
     {% for post in posts %}
     <li>
         <span class="post-date">{{ post.date_str }}</span>
         <a class="post-link" href="{{ site.url }}/posts/{{ post.year }}/{{ post.month }}/{{ post.slug }}/">{{ post.title }}</a>
+        {% if post.description %}<p class="post-desc">{{ post.description }}</p>{% endif %}
     </li>
     {% endfor %}
 </ul>
+{% else %}
+<p class="empty">Nothing here yet. The first essay is in the works.</p>
+{% endif %}
 {% endblock %}

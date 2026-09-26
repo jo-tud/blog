@@ -1,17 +1,38 @@
 {% extends "base.html" %}
 {% block title %}{{ post.title }} · {{ site.title }}{% endblock %}
 {% block description %}{{ post.description }}{% endblock %}
+{% block head %}
+    <meta name="citation_title" content="{{ post.title }}">
+    <meta name="citation_author" content="{{ site.author }}">
+    <meta name="citation_publication_date" content="{{ post.date.strftime('%Y/%m/%d') }}">
+    <meta name="citation_journal_title" content="{{ site.title }}">
+    {% if canonical_url %}<meta name="citation_public_url" content="{{ canonical_url }}">{% endif %}
+{% endblock %}
 {% block content %}
 <article>
     <h1>{{ post.title }}</h1>
     <div class="meta">
-        {{ post.date_str }}
-        {% if post.categories %} ·
-        {% for cat in post.categories %}
-        <a href="{{ site.url }}/categories/{{ cat | lower }}/">{{ cat }}</a>{% if not loop.last %}, {% endif %}
-        {% endfor %}
-        {% endif %}
+        <span><time datetime="{{ post.date_str }}">{{ post.date_str }}</time></span>
+        {% if post.revised %}<span><a href="{{ site.repo }}/commits/main/content/posts/{{ post.source }}">revised {{ post.revised }}</a></span>{% endif %}
+        {% for cat in post.categories %}<span><a href="{{ site.url }}/categories/{{ cat | lower }}/">{{ cat | lower }}</a></span>{% endfor %}
     </div>
+    {% if post.epistemic %}<p class="epistemic"><b>epistemic status</b>{{ post.epistemic }}</p>{% endif %}
+    {{ post.motif | safe }}
+    {% if post.toc %}<details class="toc"><summary>contents</summary>{{ post.toc | safe }}</details>{% endif %}
+    <div class="body">
     {{ post.html | safe }}
+    </div>
+    <section class="cite">
+        <h2>cite as</h2>
+        <p>{{ site.author }} ({{ post.year }}). “{{ post.title }}”. <i>{{ site.title }}</i>, {{ post.date_str }}{% if post.revised %}, revised {{ post.revised }}{% endif %}. <a href="{{ canonical_url }}">{{ canonical_url }}</a></p>
+        <details><summary>bibtex</summary><pre>@misc{ {{- site.author.split()[-1] | lower }}{{ post.year }}{{ post.slug.split('-')[0] }},
+  author = { {{- site.author -}} },
+  title  = { {{- post.title -}} },
+  year   = { {{- post.year -}} },
+  month  = { {{- post.month -}} },
+  howpublished = {\url{ {{- canonical_url -}} }},
+  note   = {{ '{' }}{{ site.title }}{% if post.revised %}, revised {{ post.revised }}{% endif %}{{ '}' }}
+}</pre></details>
+    </section>
 </article>
 {% endblock %}

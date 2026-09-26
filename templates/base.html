@@ -9,270 +9,187 @@
     {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
     <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ site.absolute_url }}/feed.xml">
     <link rel="stylesheet" href="{{ site.url }}/highlight.css">
+    {% block head %}{% endblock %}
     <style>
+        /* IBM Plex, self-hosted (SIL Open Font License) */
+        @font-face { font-family: "Plex Sans"; src: url("{{ site.url }}/static/fonts/IBMPlexSans-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+        @font-face { font-family: "Plex Sans"; src: url("{{ site.url }}/static/fonts/IBMPlexSans-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+        @font-face { font-family: "Plex Sans"; src: url("{{ site.url }}/static/fonts/IBMPlexSans-SemiBold.ttf") format("truetype"); font-weight: 600; font-style: normal; font-display: swap; }
+        @font-face { font-family: "Plex Sans"; src: url("{{ site.url }}/static/fonts/IBMPlexSans-SemiBoldItalic.ttf") format("truetype"); font-weight: 600; font-style: italic; font-display: swap; }
+        @font-face { font-family: "Plex Mono"; src: url("{{ site.url }}/static/fonts/IBMPlexMono-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+
         :root {
-            --bg: #fff;
-            --fg: #111;
-            --fg-dim: #555;
-            --fg-faint: #999;
-            --link: #1a0dab;
-            --link-visited: #681da8;
-            --border: #ddd;
-            --code-bg: #f5f5f5;
-            --blockquote-border: #ccc;
-            --max-width: 700px;
+            --bg: #e9e9e4;
+            --fg: #1b1b19;
+            --fg-dim: #56564f;
+            --fg-faint: #85857d;
+            --rule: #c9c9c1;
+            --dot: #c4c4bb;
+            --accent: #d4471b;
+            --code-bg: #dfdfd9;
+            --measure: 37rem;
+            --sans: "Plex Sans", "IBM Plex Sans", system-ui, sans-serif;
+            --mono: "Plex Mono", "IBM Plex Mono", ui-monospace, monospace;
         }
         @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) {
-                --bg: #1c1c1c;
-                --fg: #e0e0e0;
-                --fg-dim: #aaa;
-                --fg-faint: #777;
-                --link: #7cacf8;
-                --link-visited: #c4a5de;
-                --border: #333;
-                --code-bg: #2a2a2a;
-                --blockquote-border: #555;
+            :root {
+                --bg: #161615;
+                --fg: #dddcd5;
+                --fg-dim: #a3a29a;
+                --fg-faint: #707069;
+                --rule: #34342f;
+                --dot: #3c3c37;
+                --accent: #ff6a3c;
+                --code-bg: #20201e;
             }
         }
-        [data-theme="dark"] {
-            --bg: #1c1c1c;
-            --fg: #e0e0e0;
-            --fg-dim: #aaa;
-            --fg-faint: #777;
-            --link: #7cacf8;
-            --link-visited: #c4a5de;
-            --border: #333;
-            --code-bg: #2a2a2a;
-            --blockquote-border: #555;
-        }
         *, *::before, *::after { box-sizing: border-box; }
+        html { background: var(--bg); }
         body {
-            font-family: Georgia, 'Times New Roman', Times, serif;
+            font-family: var(--sans);
             font-size: 18px;
-            line-height: 1.7;
+            line-height: 1.62;
             color: var(--fg);
             background: var(--bg);
             margin: 0;
-            padding: 0 20px;
+            padding: 0 16px;
             -webkit-font-smoothing: antialiased;
         }
         .container {
-            max-width: var(--max-width);
+            max-width: var(--measure);
             margin: 0 auto;
-            padding: 40px 0;
+            padding: 56px 0 40px;
         }
-        header {
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border);
+        /* Header */
+        header { margin-bottom: 72px; }
+        .masthead { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .brand {
+            display: inline-flex; align-items: center; gap: 10px;
+            color: var(--fg); text-decoration: none;
+            font-weight: 600; font-size: 19px;
         }
-        header h1 {
-            font-size: 24px;
-            margin: 0 0 10px 0;
-        }
-        header h1 a {
-            color: var(--fg);
-            text-decoration: none;
-        }
-        .site-subtitle {
-            margin: -4px 0 12px 0;
-            color: var(--fg-dim);
-            font-size: 15px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-        }
-        nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px 16px;
-            align-items: center;
-        }
-        nav a {
-            color: var(--fg-dim);
-            text-decoration: none;
-            font-size: 14px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-        }
-        nav a:hover { color: var(--fg); }
-        nav a.active { color: var(--fg); font-weight: 600; }
-        .theme-toggle {
-            margin-left: auto;
-            background: none;
-            border: 1px solid var(--border);
-            color: var(--fg-dim);
-            cursor: pointer;
-            font-size: 14px;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-        }
-        .theme-toggle:hover { color: var(--fg); border-color: var(--fg-dim); }
-        a { color: var(--link); }
-        a:visited { color: var(--link-visited); }
-        h1, h2, h3, h4 {
-            font-weight: 600;
-            line-height: 1.3;
-            margin: 1.5em 0 0.5em;
-        }
-        h1 { font-size: 28px; }
-        h2 { font-size: 22px; }
-        h3 { font-size: 18px; }
-        .post-list { list-style: none; padding: 0; }
-        .post-list li {
-            margin-bottom: 16px;
-            display: flex;
-            gap: 16px;
-            align-items: baseline;
-        }
-        .post-date {
-            color: var(--fg-faint);
-            font-size: 14px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-            white-space: nowrap;
-            min-width: 90px;
-        }
-        .post-link {
-            text-decoration: none;
-            color: var(--fg);
-        }
-        .post-link:visited { color: var(--fg-dim); }
-        .post-link:hover { color: var(--link); }
-        article { margin-bottom: 60px; }
-        article .meta {
-            color: var(--fg-faint);
-            font-size: 14px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-            margin-bottom: 30px;
-        }
-        article .meta a { color: var(--fg-dim); text-decoration: none; }
-        article .meta a:hover { color: var(--fg); }
-        /* Images */
-        article img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            margin: 1.5em 0;
-            display: block;
-        }
-        article p > img:only-child { margin: 2em auto; }
-        /* Inline code */
-        code {
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            font-size: 0.85em;
-            background: var(--code-bg);
-            padding: 2px 6px;
-            border-radius: 3px;
-            word-break: break-word;
-        }
-        /* Code blocks */
-        pre {
-            background: var(--code-bg);
-            padding: 16px;
-            overflow-x: auto;
-            border-radius: 6px;
-            line-height: 1.5;
-            margin: 1.5em 0;
-            -webkit-overflow-scrolling: touch;
-        }
-        pre code {
-            background: none;
-            padding: 0;
-            font-size: 0.85em;
-            word-break: normal;
-        }
-        .highlight { margin: 1.5em 0; border-radius: 6px; overflow: hidden; }
-        .highlight pre { margin: 0; }
-        /* Blockquotes */
-        blockquote {
-            border-left: 3px solid var(--blockquote-border);
-            margin: 1.5em 0;
-            padding: 0 0 0 20px;
-            color: var(--fg-dim);
-        }
-        blockquote p:first-child { margin-top: 0; }
-        blockquote p:last-child { margin-bottom: 0; }
-        hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
-        /* Tables */
-        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1.5em 0; }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            min-width: 400px;
-        }
-        th, td {
-            border: 1px solid var(--border);
-            padding: 8px 12px;
-            text-align: left;
-        }
-        th {
-            font-weight: 600;
-            background: var(--code-bg);
-        }
-        tr:nth-child(even) td { background: var(--code-bg); }
-        /* Lists inside articles */
-        article ul, article ol { padding-left: 1.5em; }
+        .brand .sparse { width: 40px; height: 24px; }
+        header nav { margin-left: auto; display: flex; gap: 18px; font-family: var(--mono); font-size: 13px; }
+        header nav a { color: var(--fg-dim); text-decoration: none; }
+        header nav a:hover { color: var(--fg); }
+        .site-subtitle { margin: 6px 0 0 50px; color: var(--fg-dim); font-size: 15px; }
+        /* Dot motif: many empty cells, one reward */
+        .sparse circle { fill: var(--dot); }
+        .sparse circle.hit { fill: var(--accent); }
+        /* Links: a quiet underline; the accent only appears on hover */
+        a { color: inherit; text-decoration-line: underline; text-decoration-thickness: 1px;
+            text-underline-offset: 3px; text-decoration-color: var(--fg-faint); }
+        a:hover { text-decoration-color: var(--accent); }
+        /* Headings */
+        h1, h2, h3, h4 { font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; }
+        h1 { font-size: 34px; margin: 0 0 14px; letter-spacing: -0.02em; }
+        h2 { font-size: 22px; margin: 2.2em 0 0.5em; }
+        h3 { font-size: 18px; margin: 1.8em 0 0.4em; }
+        .anchor { margin-left: 0.35em; color: var(--fg-faint); text-decoration: none; opacity: 0; font-weight: 400; }
+        h2:hover .anchor, h3:hover .anchor, .anchor:focus { opacity: 1; }
+        /* Index */
+        .post-list { list-style: none; padding: 0; margin: 0; }
+        .post-list li { display: grid; grid-template-columns: 7.5em 1fr; gap: 4px 20px; padding: 18px 0; border-top: 1px solid var(--rule); }
+        .post-list li:last-child { border-bottom: 1px solid var(--rule); }
+        .post-date { font-family: var(--mono); font-size: 13px; color: var(--fg-faint); padding-top: 4px; }
+        .post-link { font-weight: 600; text-decoration: none; }
+        .post-link:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+        .post-desc { grid-column: 2; margin: 2px 0 0; color: var(--fg-dim); font-size: 16px; line-height: 1.5; }
+        .empty { color: var(--fg-dim); }
+        /* Article */
+        article { margin-bottom: 64px; }
+        article .sparse.motif { display: block; width: 100%; height: auto; max-width: 360px; margin: 28px 0 8px; }
+        .meta { font-family: var(--mono); font-size: 13px; color: var(--fg-faint); line-height: 1.7; }
+        .meta span + span::before { content: " · "; }
+        .meta a { color: var(--fg-dim); }
+        .epistemic { margin: 10px 0 0; font-size: 15px; color: var(--fg-dim); }
+        .epistemic b { font-family: var(--mono); font-size: 13px; font-weight: 400; color: var(--fg-faint); margin-right: 6px; }
+        .toc { margin: 28px 0 8px; font-size: 15px; }
+        .toc summary { font-family: var(--mono); font-size: 13px; color: var(--fg-faint); cursor: pointer; }
+        .toc ul { list-style: none; padding-left: 0; margin: 8px 0 0; }
+        .toc ul ul { padding-left: 1.2em; }
+        .toc a { text-decoration: none; color: var(--fg-dim); }
+        .toc a:hover { color: var(--fg); }
+        .body { margin-top: 40px; }
+        article p { margin: 0 0 1.1em; hyphens: auto; }
+        article img { max-width: 100%; height: auto; display: block; margin: 2em auto; }
+        article ul, article ol { padding-left: 1.3em; }
         article li { margin-bottom: 0.3em; }
-        article li > p { margin: 0.3em 0; }
-        footer {
-            margin-top: 60px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
-            color: var(--fg-faint);
-            font-size: 14px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        blockquote { margin: 1.6em 0; padding: 0 0 0 18px; border-left: 2px solid var(--rule); color: var(--fg-dim); }
+        hr { border: none; height: 1px; background: var(--rule); margin: 2.5em 0; }
+        code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 1px 5px; }
+        pre { background: var(--code-bg); padding: 14px 16px; overflow-x: auto; line-height: 1.5; margin: 1.5em 0; }
+        pre code { background: none; padding: 0; }
+        .highlight { margin: 1.5em 0; }
+        .highlight pre { margin: 0; }
+        .table-wrap { overflow-x: auto; margin: 1.5em 0; }
+        table { border-collapse: collapse; width: 100%; font-size: 16px; }
+        th, td { border-bottom: 1px solid var(--rule); padding: 8px 10px 8px 0; text-align: left; }
+        th { font-weight: 600; }
+        /* Footnotes become sidenotes on wide screens */
+        sup { line-height: 0; }
+        .footnote-ref { font-family: var(--mono); font-size: 12px; text-decoration: none; color: var(--accent); padding: 0 1px; }
+        .sidenote { display: none; }
+        .footnote { font-size: 15px; color: var(--fg-dim); margin-top: 3em; }
+        .footnote hr { margin: 0 0 1.5em; }
+        .footnote ol { padding-left: 1.4em; }
+        .footnote-backref { text-decoration: none; }
+        @media (min-width: 1180px) {
+            .container { max-width: calc(var(--measure) + 18rem); padding-right: 18rem; }
+            .sidenote {
+                display: block; float: right; clear: right;
+                width: 15rem; margin: 0.3em -18rem 1em 0;
+                font-size: 13.5px; line-height: 1.5; color: var(--fg-dim);
+            }
+            .sn-num { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-right: 3px; }
+            .footnote { display: none; }
         }
-        /* Mobile */
+        /* Citation */
+        .cite { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 15px; color: var(--fg-dim); }
+        .cite h2 { font-family: var(--mono); font-size: 13px; font-weight: 400; color: var(--fg-faint); margin: 0 0 8px; letter-spacing: 0; }
+        .cite p { margin: 0 0 10px; }
+        .cite summary { font-family: var(--mono); font-size: 13px; color: var(--fg-faint); cursor: pointer; }
+        .cite pre { font-size: 13px; white-space: pre-wrap; margin: 8px 0 0; }
+        /* Footer */
+        footer { margin-top: 80px; padding-top: 16px; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 12.5px; color: var(--fg-faint); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+        footer a { color: var(--fg-dim); text-decoration: none; }
+        footer a:hover { color: var(--fg); }
+        footer .colophon { margin-left: auto; }
         @media (max-width: 600px) {
-            body { font-size: 16px; padding: 0 16px; }
-            .container { padding: 24px 0; }
-            header { margin-bottom: 24px; }
-            h1 { font-size: 24px; }
-            h2 { font-size: 20px; }
-            pre { padding: 12px; font-size: 14px; }
-            th, td { padding: 6px 8px; font-size: 15px; }
-            .post-list li { flex-direction: column; gap: 2px; }
-            article img { border-radius: 2px; margin: 1em 0; }
-            blockquote { padding-left: 14px; }
-            nav { gap: 6px 12px; }
+            body { font-size: 17px; }
+            .container { padding-top: 28px; }
+            header { margin-bottom: 44px; }
+            header nav { margin-left: 0; width: 100%; }
+            .site-subtitle { margin-left: 0; }
+            h1 { font-size: 27px; }
+            .post-list li { grid-template-columns: 1fr; }
+            .post-desc { grid-column: 1; }
+            footer .colophon { margin-left: 0; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><a href="{{ site.url }}/">{{ site.title }}</a></h1>
+            <div class="masthead">
+                <a class="brand" href="{{ site.url }}/">{{ site.mark }}{{ site.title }}</a>
+                <nav>
+                    <a href="{{ site.url }}/">essays</a>
+                    {% for page in pages %}<a href="{{ site.url }}/{{ page.slug }}/">{{ page.title | lower }}</a>{% endfor %}
+                    <a href="{{ site.url }}/feed.xml">rss</a>
+                </nav>
+            </div>
             {% if site.subtitle %}<p class="site-subtitle">{{ site.subtitle }}</p>{% endif %}
-            <nav>
-                {% for cat in categories %}
-                <a href="{{ site.url }}/categories/{{ cat | lower }}/"{% if active_category == cat %} class="active"{% endif %}>{{ cat }}</a>
-                {% endfor %}
-                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">◐</button>
-            </nav>
         </header>
         <main>
             {% block content %}{% endblock %}
         </main>
         <footer>
-            <p>{{ site.author }} · <a href="{{ site.url }}/feed.xml">RSS</a>{% for page in pages %} · <a href="{{ site.url }}/{{ page.slug }}/">{{ page.title }}</a>{% endfor %}</p>
+            <span>© {{ site.author }}</span>
+            <a href="{{ site.url }}/feed.xml">RSS</a>
+            {% for page in pages %}<a href="{{ site.url }}/{{ page.slug }}/">{{ page.title }}</a>{% endfor %}
+            <span class="colophon">Set in IBM Plex · <a href="{{ site.repo }}">source</a></span>
         </footer>
     </div>
-    <script>
-        function toggleTheme() {
-            const html = document.documentElement;
-            const current = html.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : (current === 'light' ? '' : 'dark');
-            if (next) {
-                html.setAttribute('data-theme', next);
-                localStorage.setItem('theme', next);
-            } else {
-                html.removeAttribute('data-theme');
-                localStorage.removeItem('theme');
-            }
-        }
-        (function() {
-            const saved = localStorage.getItem('theme');
-            if (saved) document.documentElement.setAttribute('data-theme', saved);
-        })();
-    </script>
 </body>
 </html>
