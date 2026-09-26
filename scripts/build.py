@@ -103,6 +103,18 @@ def sparse_strip(seed, cols, rows=3, gap=10, r=1.2, cls="sparse"):
             f'aria-hidden="true">{"".join(dots)}</svg>')
 
 
+def images_to_figures(html):
+    """An image on its own line with a title becomes a figure; the title is the caption.
+
+    ![alt](/static/images/x/1.jpg "SDXL · CFG 25 · seed 1")  ->  <figure><img …><figcaption>…</figcaption></figure>
+    """
+    return re.sub(
+        r'<p><img alt="([^"]*)" src="([^"]*)" title="([^"]*)" ?/?></p>',
+        r'<figure><img alt="\1" src="\2" loading="lazy"><figcaption>\3</figcaption></figure>',
+        html,
+    )
+
+
 def footnotes_to_sidenotes(html):
     """Copy each footnote next to its reference as a sidenote.
 
@@ -174,6 +186,7 @@ def parse_post(filepath):
     )
     html = md.convert(body)
     html = footnotes_to_sidenotes(html)
+    html = images_to_figures(html)
 
     # Wrap tables in scrollable container for mobile
     html = html.replace("<table>", '<div class="table-wrap"><table>').replace("</table>", "</table></div>")

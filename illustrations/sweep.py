@@ -23,6 +23,12 @@ Usage:
 
     # Contact sheet for a finished run
     python illustrations/sweep.py contact illustrations/runs/<run>
+
+Per post (the normal workflow):
+    # 1. A contact sheet of 12 variations from the presets that have worked so far
+    python illustrations/sweep.py post hubris-without-a-mind --prompt "hubris"
+    # 2. Pick 0-3 favourites by number; they go to static/images/<slug>/ with a caption
+    python illustrations/sweep.py select illustrations/runs/hubris-without-a-mind/<run> 004 007
 """
 
 import argparse
@@ -43,6 +49,20 @@ API = "https://api.replicate.com/v1"
 FONT = HERE.parent / "static" / "fonts" / "IBMPlexMono-Regular.ttf"
 # Replicate sits behind Cloudflare, which rejects the default Python-urllib user agent
 USER_AGENT = "sparserewards-illustrations/1.0"
+IMAGES = HERE.parent / "static" / "images"
+MAX_PER_POST = 3  # never more illustrations than this in one post
+
+# Settings that produced usable images in the first experiments (2026-09-26).
+# Few steps with high guidance make the model break down in different ways per sampler.
+POST_MODEL = "stability-ai/sdxl"
+POST_PRESETS = [
+    {"scheduler": "K_EULER", "guidance_scale": 25, "num_inference_steps": 10},           # calm, architectural
+    {"scheduler": "K_EULER", "guidance_scale": 25, "num_inference_steps": 15},           # illustrative, darker
+    {"scheduler": "DDIM", "guidance_scale": 50, "num_inference_steps": 4},               # shards, lone figures
+    {"scheduler": "K_EULER_ANCESTRAL", "guidance_scale": 50, "num_inference_steps": 5},  # blurs, points of light
+]
+POST_FIXED = {"width": 1024, "height": 1024, "disable_safety_checker": True}
+MODEL_NAMES = {"stability-ai/sdxl": "SDXL", "stability-ai/stable-diffusion": "Stable Diffusion"}
 
 
 def token():
@@ -162,10 +182,15 @@ def cmd_run(args):
         return
 
     slug = re.sub(r"[^a-z0-9]+", "-", (args.name or args.model.split("/")[-1]).lower()).strip("-")
-    run_dir = RUNS / f"{datetime.now():%Y-%m-%d-%H%M%S}-{slug}"
+    execute(args.model, version, fixed, combos, RUNS / f"{datetime.now():%Y-%m-%d-%H%M%S}-{slug}",
+            {"fixed": fixed, "sweep": sweep})
+
+
+def execute(model, version, fixed, combos, run_dir, plan):
+    """Run one prediction per combination, save images with their metadata, build the contact sheet."""
     run_dir.mkdir(parents=True)
     (run_dir / "run.json").write_text(json.dumps({
-        "model": args.model, "version": version["id"], "fixed": fixed, "sweep": sweep,
+        "model": model, "version": version["id"], **plan,
         "started": datetime.now().isoformat(timespec="seconds")}, indent=2))
 
     total_time = 0.0
@@ -189,12 +214,71 @@ def cmd_run(args):
         seconds = (pred.get("metrics") or {}).get("predict_time") or 0
         total_time += seconds
         (run_dir / f"{n:03d}.json").write_text(json.dumps({
-            "model": args.model, "version": version["id"], "input": inputs, "varied": combo,
+            "model": model, "version": version["id"], "input": inputs, "varied": combo,
             "files": files, "prediction": pred["id"], "predict_time": seconds}, indent=2))
         print(f"[{n}/{len(combos)}] {label}: {', '.join(files)} ({seconds:.1f} s)")
 
     print(f"\n{run_dir}\nGPU time: {total_time:.0f} s (see replicate.com/account for the cost)")
     make_contact_sheet(run_dir)
+
+
+def cmd_post(args):
+    """The standard contact sheet for one post: every preset with every seed."""
+    slug = re.sub(r"[^a-z0-9]+", "-", args.slug.lower()).strip("-")
+    seeds = [int(x) for x in args.seeds.split(",")]
+    combos = [{**preset, "seed": seed} for preset in POST_PRESETS for seed in seeds]
+    fixed = {"prompt": args.prompt, **POST_FIXED}
+    print(f"{len(combos)} image(s) planned for '{slug}' with {POST_MODEL}")
+    if args.dry_run:
+        for c in combos:
+            print("  ", c)
+        return
+    version = latest_version(POST_MODEL)
+    execute(POST_MODEL, version, fixed, combos, RUNS / slug / f"{datetime.now():%Y-%m-%d-%H%M%S}",
+            {"post": slug, "fixed": fixed, "presets": POST_PRESETS, "seeds": seeds})
+
+
+def caption(meta):
+    """One line saying how the image was made, e.g. 'SDXL · "hubris" · CFG 25 · 10 steps · K_EULER · seed 1'."""
+    inp = meta["input"]
+    parts = [MODEL_NAMES.get(meta["model"], meta["model"])]
+    if inp.get("prompt"):
+        parts.append(f"“{inp['prompt']}”")
+    if "guidance_scale" in inp:
+        parts.append(f"CFG {inp['guidance_scale']:g}")
+    if "num_inference_steps" in inp:
+        parts.append(f"{inp['num_inference_steps']} steps")
+    if inp.get("scheduler"):
+        parts.append(inp["scheduler"])
+    if "seed" in inp:
+        parts.append(f"seed {inp['seed']}")
+    return " · ".join(parts)
+
+
+def cmd_select(args):
+    """Copy chosen images of a run into static/images/<slug>/ and print the Markdown for the post."""
+    from PIL import Image
+    run_dir = args.run_dir.resolve()
+    plan = json.loads((run_dir / "run.json").read_text())
+    slug = args.post or plan.get("post")
+    if not slug:
+        sys.exit("Which post? Use --post <slug> (runs made with 'post' know it already).")
+    target = IMAGES / slug
+    existing = sorted(target.glob("*.jpg")) if target.exists() else []
+    if len(existing) + len(args.numbers) > MAX_PER_POST:
+        sys.exit(f"'{slug}' would have {len(existing) + len(args.numbers)} illustrations; "
+                 f"the limit is {MAX_PER_POST}. Remove some from {target} first.")
+    target.mkdir(parents=True, exist_ok=True)
+    for number in args.numbers:
+        meta = json.loads((run_dir / f"{int(number):03d}.json").read_text())
+        src = run_dir / meta["files"][0]
+        index = len(sorted(target.glob("*.jpg"))) + 1
+        dest = target / f"{index}.jpg"
+        Image.open(src).convert("RGB").save(dest, quality=88, optimize=True, progressive=True)
+        (target / f"{index}.json").write_text(json.dumps({**meta, "source_run": run_dir.name}, indent=2))
+        alt = args.alt or "Illustration"
+        print(f'![{alt}](/static/images/{slug}/{index}.jpg "{caption(meta)}")')
+    print(f"\nCopied to {target}. Paste the line(s) above into the post; the title becomes the caption.")
 
 
 def make_contact_sheet(run_dir, thumb=320):
@@ -244,13 +328,19 @@ def main():
     r.add_argument("--dry-run", action="store_true", help="only list the planned combinations")
     c = sub.add_parser("contact", help="(re)build the contact sheet of a run")
     c.add_argument("run_dir", type=Path)
+    po = sub.add_parser("post", help="standard contact sheet for one post (presets x seeds)")
+    po.add_argument("slug", help="the post's slug, e.g. hubris-without-a-mind")
+    po.add_argument("--prompt", required=True, help="usually one word from the post")
+    po.add_argument("--seeds", default="1,2,3")
+    po.add_argument("--dry-run", action="store_true")
+    se = sub.add_parser("select", help=f"take 0-{MAX_PER_POST} favourites from a run into the post")
+    se.add_argument("run_dir", type=Path)
+    se.add_argument("numbers", nargs="+", help="image numbers from the contact sheet, e.g. 004 007")
+    se.add_argument("--post", help="slug (only needed for runs not made with 'post')")
+    se.add_argument("--alt", help="alt text for screen readers")
     args = p.parse_args()
-    if args.cmd == "schema":
-        cmd_schema(args)
-    elif args.cmd == "run":
-        cmd_run(args)
-    else:
-        make_contact_sheet(args.run_dir)
+    {"schema": cmd_schema, "run": cmd_run, "post": cmd_post, "select": cmd_select,
+     "contact": lambda a: make_contact_sheet(a.run_dir)}[args.cmd](args)
 
 
 if __name__ == "__main__":
