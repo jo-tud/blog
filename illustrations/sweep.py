@@ -25,9 +25,10 @@ Usage:
     python illustrations/sweep.py contact illustrations/runs/<run>
 
 Per post (the normal workflow):
-    # 1. A contact sheet of 12 variations from the presets that have worked so far,
-    #    ideally one per section, with a prompt that fits that section
-    python illustrations/sweep.py post hubris-without-a-mind --section conclusion --prompt "white ash falling on a fishing boat"
+    # 1. One contact sheet per section: several words that fit it, each with the full
+    #    guidance sweep (6 values x 2 seeds), one row per word and seed
+    python illustrations/sweep.py post hubris-without-a-mind --section conclusion \
+        --prompt "white ash falling on a fishing boat" --prompt "fallout" --prompt "a test that went too well"
     # 2. Pick 0-3 favourites by number; they go to static/images/<slug>/ with a caption
     python illustrations/sweep.py select illustrations/runs/hubris-without-a-mind/<run> 004 007
 """
@@ -69,6 +70,7 @@ POST_FIXED = {"width": 1024, "height": 1024, "disable_safety_checker": True}
 # (K_EULER, 10 steps) showed the change happening mostly between CFG ~31 and ~43 and
 # saturating towards 50, so values are logistic quantiles centred on 37.
 DISSOLVE = {"scheduler": "K_EULER", "num_inference_steps": 10}
+MIN_PROMPTS = 3
 DISSOLVE_CFG = {"low": 25, "high": 50, "centre": 37, "width": 5.5, "n": 6}
 
 
@@ -245,14 +247,22 @@ def cmd_post(args):
     slug = re.sub(r"[^a-z0-9]+", "-", args.slug.lower()).strip("-")
     args.seeds = args.seeds or ("1,2" if args.mode == "dissolve" else "1,2,3")
     seeds = [int(x) for x in args.seeds.split(",")]
+    # Several words per image slot give real choice (Jo, 2026-09-27): every prompt gets the full sweep
+    prompts = [p.strip() for p in args.prompt if p.strip()]
+    if len(prompts) < MIN_PROMPTS:
+        print(f"Note: only {len(prompts)} prompt(s). For real choice use at least {MIN_PROMPTS} different words.")
     if args.mode == "presets":
-        combos = [{**preset, "seed": seed} for preset in POST_PRESETS for seed in seeds]
+        combos = [{"prompt": pr, **preset, "seed": seed}
+                  for pr in prompts for preset in POST_PRESETS for seed in seeds]
         plan_detail = {"presets": POST_PRESETS}
     else:
         cfgs = dissolve_cfgs(**DISSOLVE_CFG)
-        combos = [{**DISSOLVE, "guidance_scale": cfg, "seed": seed} for seed in seeds for cfg in cfgs]
+        combos = [{"prompt": pr, **DISSOLVE, "guidance_scale": cfg, "seed": seed}
+                  for pr in prompts for seed in seeds for cfg in cfgs]
         plan_detail = {"dissolve": DISSOLVE, "guidance_scales": cfgs}
-    fixed = {"prompt": args.prompt, **POST_FIXED}
+    if len(combos) > args.max:
+        sys.exit(f"{len(combos)} images is more than --max {args.max}. Fewer prompts/seeds, or raise --max.")
+    fixed = dict(POST_FIXED)
     print(f"{len(combos)} image(s) planned for '{slug}' with {POST_MODEL}")
     if args.dry_run:
         for c in combos:
@@ -262,7 +272,8 @@ def cmd_post(args):
     section = re.sub(r"[^a-z0-9]+", "-", (args.section or "").lower()).strip("-")
     name = f"{datetime.now():%Y-%m-%d-%H%M%S}" + (f"-{section}" if section else "")
     execute(POST_MODEL, version, fixed, combos, RUNS / slug / name,
-            {"post": slug, "section": args.section, "mode": args.mode, "fixed": fixed, **plan_detail, "seeds": seeds})
+            {"post": slug, "section": args.section, "mode": args.mode, "prompts": prompts, "fixed": fixed,
+             **plan_detail, "seeds": seeds})
 
 
 def caption(meta):
@@ -311,11 +322,14 @@ def cmd_select(args):
 def make_contact_sheet(run_dir, thumb=320):
     from PIL import Image, ImageDraw, ImageFont
     entries = []
-    for meta_file in sorted(run_dir.glob("[0-9][0-9][0-9].json")):
-        meta = json.loads(meta_file.read_text())
+    metas = [json.loads(m.read_text()) for m in sorted(run_dir.glob("[0-9][0-9][0-9].json"))]
+    # Label only what actually differs between the images of this run
+    keys = [k for k in (metas[0]["varied"] if metas else {})
+            if len({str(m["varied"].get(k)) for m in metas}) > 1]
+    for meta in metas:
         for f in meta["files"]:
             if Path(f).suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
-                label = "\n".join([Path(f).stem] + [f"{k}={v}" for k, v in meta["varied"].items()])
+                label = "\n".join([Path(f).stem] + [f"{k}={meta['varied'][k]}" for k in keys])
                 entries.append((run_dir / f, label))
     if not entries:
         return
@@ -360,7 +374,10 @@ def main():
     c.add_argument("run_dir", type=Path)
     po = sub.add_parser("post", help="standard contact sheet for one post (presets x seeds)")
     po.add_argument("slug", help="the post's slug, e.g. hubris-without-a-mind")
-    po.add_argument("--prompt", required=True, help="usually one word from the post")
+    po.add_argument("--prompt", required=True, action="append",
+                    help="a word or short phrase for this part of the post; repeat for several "
+                         "(at least three recommended), each gets the full sweep")
+    po.add_argument("--max", type=int, default=60, help="refuse larger sheets (default 60)")
     po.add_argument("--mode", choices=["dissolve", "presets"], default="dissolve",
                     help="dissolve: 6 guidance values, denser where the motif breaks up (default); "
                          "presets: the four sampler presets from the first experiments")
