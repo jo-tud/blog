@@ -131,8 +131,15 @@
         .body { margin-top: 40px; }
         article p { margin: 0 0 1.1em; hyphens: auto; }
         article img { max-width: 100%; height: auto; display: block; margin: 2em auto; }
-        figure { margin: 2.2em 0; }
-        figure img { margin: 0; width: 100%; }
+        /* Figures: wider than the text, cropped to 5:3 (the file stays square; click opens it).
+           Without the sidenote column they break out on both sides, with it only to the left,
+           into the empty margin; on phones they run edge to edge. */
+        figure { --bleed: max(0px, min(8rem, calc((100vw - 32px - var(--measure)) / 2)));
+                 margin: 2.4em calc(-1 * var(--bleed)); }
+        figure a { display: block; }
+        figure img { display: block; margin: 0; width: 100%; aspect-ratio: 5 / 3;
+                     object-fit: cover; object-position: 50% 50%; }
+        figcaption { padding-left: var(--bleed); }
         figcaption { margin-top: 8px; font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--fg-faint); }
         article ul, article ol { padding-left: 1.3em; }
         article li { margin-bottom: 0.3em; }
@@ -164,6 +171,8 @@
             }
             .sn-num { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-right: 3px; }
             .footnote { display: none; }
+            figure { --bleed: max(0px, min(10rem, calc((100vw - 32px - var(--measure) - 18rem) / 2)));
+                     margin-left: calc(-1 * var(--bleed)); margin-right: 0; }
         }
         /* Citation */
         .cite { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 15px; color: var(--fg-dim); }
@@ -186,6 +195,8 @@
             .post-list li { grid-template-columns: 1fr; }
             .post-desc { grid-column: 1; }
             footer .colophon { margin-left: 0; }
+            figure { margin-left: -16px; margin-right: -16px; }
+            figcaption { padding: 0 16px; }
         }
     </style>
 </head>

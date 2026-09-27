@@ -53,6 +53,8 @@ Optional fields, each shown only when set:
 
 Posts are in English by default. A translation sits next to the original with a language suffix: `2026-10-02-slug.de.md` is the German version of `2026-10-02-slug.md`, served at `/posts/2026/10/slug/de/`. Both versions link to each other; the index and the RSS feed list the English one. A post that exists only in another language uses the suffix too (or `lang: de` in the front matter).
 
+A leading `# Title` line in the body is dropped (the title comes from the front matter; if that has none, the heading is used). Images with a title become wide, 5:3-cropped figures with a caption; see WRITING.md.
+
 Footnotes (`[^1]`) appear as sidenotes on wide screens and as a list at the end otherwise. Every post ends with a "cite as" block (with BibTeX) and carries Google Scholar meta tags.
 
 Set `draft: true` in the frontmatter to keep a post off the built site (the file itself stays public in the repo).

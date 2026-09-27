@@ -66,6 +66,19 @@ External images work too:
 
 An image alone in its own paragraph will be centered. Images are responsive and scale down on mobile.
 
+
+An image on its own line **with a title** becomes a figure, and the title is its caption:
+
+```markdown
+![Alt text](/static/images/my-post/1.jpg "SDXL · “hubris” · CFG 50 · 4 steps · DDIM · seed 1")
+```
+
+Figures are wider than the text (to the left when the sidenote column is shown, to both sides without it, edge to edge on phones) and are displayed cropped to 5:3; the file stays whole and a click opens it. Add `#focus=N` to the file name to move the crop (0 keeps the top, 100 the bottom):
+
+```markdown
+![Alt text](/static/images/my-post/1.jpg#focus=30 "Caption")
+```
+
 ## Code
 
 Inline code uses single backticks:

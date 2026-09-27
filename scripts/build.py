@@ -106,13 +106,20 @@ def sparse_strip(seed, cols, rows=3, gap=10, r=1.2, cls="sparse"):
 def images_to_figures(html):
     """An image on its own line with a title becomes a figure; the title is the caption.
 
-    ![alt](/static/images/x/1.jpg "SDXL · CFG 25 · seed 1")  ->  <figure><img …><figcaption>…</figcaption></figure>
+    ![alt](/static/images/x/1.jpg "SDXL · CFG 25 · seed 1")  ->  <figure><a><img …></a><figcaption>…</figcaption></figure>
+
+    Figures are shown cropped to 5:3 by CSS; the file itself stays whole and the image links
+    to it. `#focus=30` after the file name moves the crop: 0 keeps the top, 100 the bottom.
     """
-    return re.sub(
-        r'<p><img alt="([^"]*)" src="([^"]*)" title="([^"]*)" ?/?></p>',
-        r'<figure><img alt="\1" src="\2" loading="lazy"><figcaption>\3</figcaption></figure>',
-        html,
-    )
+    def figure(m):
+        alt, src, title = m.group(1), m.group(2), m.group(3)
+        focus = re.search(r"#focus=(\d{1,3})$", src)
+        src = re.sub(r"#focus=\d{1,3}$", "", src)
+        style = f' style="object-position: 50% {min(int(focus.group(1)), 100)}%"' if focus else ""
+        return (f'<figure><a href="{src}"><img alt="{alt}" src="{src}" loading="lazy"{style}></a>'
+                f"<figcaption>{title}</figcaption></figure>")
+
+    return re.sub(r'<p><img alt="([^"]*)" src="([^"]*)" title="([^"]*)" ?/?></p>', figure, html)
 
 
 def footnotes_to_sidenotes(html):
@@ -146,6 +153,13 @@ def parse_post(filepath):
         return None
     meta = yaml.safe_load(match.group(1))
     body = match.group(2)
+
+    # A leading "# Title" (as written in Obsidian) would repeat the title from the front
+    # matter, so drop it; if the front matter has no title, use it instead.
+    h1 = re.match(r"\s*# (.+)\n", body)
+    if h1:
+        meta.setdefault("title", h1.group(1).strip())
+        body = body[h1.end():]
 
     # Parse date
     date = meta.get("date")
