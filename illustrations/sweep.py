@@ -63,6 +63,23 @@ POST_PRESETS = [
     {"scheduler": "K_EULER_ANCESTRAL", "guidance_scale": 50, "num_inference_steps": 5},  # blurs, points of light
 ]
 POST_FIXED = {"width": 1024, "height": 1024, "disable_safety_checker": True}
+
+# "dissolve" mode (default since 2026-09-27): one sampler and step count, guidance spread
+# non-linearly so most images fall where the motif dissolves into noise. A calibration run
+# (K_EULER, 10 steps) showed the change happening mostly between CFG ~31 and ~43 and
+# saturating towards 50, so values are logistic quantiles centred on 37.
+DISSOLVE = {"scheduler": "K_EULER", "num_inference_steps": 10}
+DISSOLVE_CFG = {"low": 25, "high": 50, "centre": 37, "width": 5.5, "n": 6}
+
+
+def dissolve_cfgs(low, high, centre, width, n):
+    """n guidance values from low to high, denser around centre (evenly spaced logistic quantiles)."""
+    import math
+    logit = lambda p: math.log(p / (1 - p))
+    p_lo = 1 / (1 + math.exp(-(low - centre) / width))
+    p_hi = 1 / (1 + math.exp(-(high - centre) / width))
+    ps = [p_lo + (p_hi - p_lo) * i / (n - 1) for i in range(n)]
+    return [round(centre + width * logit(p), 1) for p in ps]
 MODEL_NAMES = {"stability-ai/sdxl": "SDXL", "stability-ai/stable-diffusion": "Stable Diffusion"}
 
 
@@ -226,8 +243,15 @@ def execute(model, version, fixed, combos, run_dir, plan):
 def cmd_post(args):
     """The standard contact sheet for one post: every preset with every seed."""
     slug = re.sub(r"[^a-z0-9]+", "-", args.slug.lower()).strip("-")
+    args.seeds = args.seeds or ("1,2" if args.mode == "dissolve" else "1,2,3")
     seeds = [int(x) for x in args.seeds.split(",")]
-    combos = [{**preset, "seed": seed} for preset in POST_PRESETS for seed in seeds]
+    if args.mode == "presets":
+        combos = [{**preset, "seed": seed} for preset in POST_PRESETS for seed in seeds]
+        plan_detail = {"presets": POST_PRESETS}
+    else:
+        cfgs = dissolve_cfgs(**DISSOLVE_CFG)
+        combos = [{**DISSOLVE, "guidance_scale": cfg, "seed": seed} for seed in seeds for cfg in cfgs]
+        plan_detail = {"dissolve": DISSOLVE, "guidance_scales": cfgs}
     fixed = {"prompt": args.prompt, **POST_FIXED}
     print(f"{len(combos)} image(s) planned for '{slug}' with {POST_MODEL}")
     if args.dry_run:
@@ -238,7 +262,7 @@ def cmd_post(args):
     section = re.sub(r"[^a-z0-9]+", "-", (args.section or "").lower()).strip("-")
     name = f"{datetime.now():%Y-%m-%d-%H%M%S}" + (f"-{section}" if section else "")
     execute(POST_MODEL, version, fixed, combos, RUNS / slug / name,
-            {"post": slug, "section": args.section, "fixed": fixed, "presets": POST_PRESETS, "seeds": seeds})
+            {"post": slug, "section": args.section, "mode": args.mode, "fixed": fixed, **plan_detail, "seeds": seeds})
 
 
 def caption(meta):
@@ -295,7 +319,10 @@ def make_contact_sheet(run_dir, thumb=320):
                 entries.append((run_dir / f, label))
     if not entries:
         return
-    cols = min(4, len(entries))
+    plan_file = run_dir / "run.json"
+    plan = json.loads(plan_file.read_text()) if plan_file.exists() else {}
+    # Dissolve runs: one row per seed, guidance increasing left to right
+    cols = len(plan["guidance_scales"]) if "guidance_scales" in plan else min(4, len(entries))
     rows = -(-len(entries) // cols)
     pad = 12
     text_h = 8 + 15 * max(label.count("\n") + 1 for _, label in entries)
@@ -334,7 +361,10 @@ def main():
     po = sub.add_parser("post", help="standard contact sheet for one post (presets x seeds)")
     po.add_argument("slug", help="the post's slug, e.g. hubris-without-a-mind")
     po.add_argument("--prompt", required=True, help="usually one word from the post")
-    po.add_argument("--seeds", default="1,2,3")
+    po.add_argument("--mode", choices=["dissolve", "presets"], default="dissolve",
+                    help="dissolve: 6 guidance values, denser where the motif breaks up (default); "
+                         "presets: the four sampler presets from the first experiments")
+    po.add_argument("--seeds", default=None, help="default 1,2 (dissolve) or 1,2,3 (presets)")
     po.add_argument("--section", help="the part of the post this image is for, e.g. 'conclusion'")
     po.add_argument("--dry-run", action="store_true")
     se = sub.add_parser("select", help=f"take 0-{MAX_PER_POST} favourites from a run into the post")
