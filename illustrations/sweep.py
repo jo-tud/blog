@@ -25,8 +25,9 @@ Usage:
     python illustrations/sweep.py contact illustrations/runs/<run>
 
 Per post (the normal workflow):
-    # 1. A contact sheet of 12 variations from the presets that have worked so far
-    python illustrations/sweep.py post hubris-without-a-mind --prompt "hubris"
+    # 1. A contact sheet of 12 variations from the presets that have worked so far,
+    #    ideally one per section, with a prompt that fits that section
+    python illustrations/sweep.py post hubris-without-a-mind --section conclusion --prompt "white ash falling on a fishing boat"
     # 2. Pick 0-3 favourites by number; they go to static/images/<slug>/ with a caption
     python illustrations/sweep.py select illustrations/runs/hubris-without-a-mind/<run> 004 007
 """
@@ -234,8 +235,10 @@ def cmd_post(args):
             print("  ", c)
         return
     version = latest_version(POST_MODEL)
-    execute(POST_MODEL, version, fixed, combos, RUNS / slug / f"{datetime.now():%Y-%m-%d-%H%M%S}",
-            {"post": slug, "fixed": fixed, "presets": POST_PRESETS, "seeds": seeds})
+    section = re.sub(r"[^a-z0-9]+", "-", (args.section or "").lower()).strip("-")
+    name = f"{datetime.now():%Y-%m-%d-%H%M%S}" + (f"-{section}" if section else "")
+    execute(POST_MODEL, version, fixed, combos, RUNS / slug / name,
+            {"post": slug, "section": args.section, "fixed": fixed, "presets": POST_PRESETS, "seeds": seeds})
 
 
 def caption(meta):
@@ -332,6 +335,7 @@ def main():
     po.add_argument("slug", help="the post's slug, e.g. hubris-without-a-mind")
     po.add_argument("--prompt", required=True, help="usually one word from the post")
     po.add_argument("--seeds", default="1,2,3")
+    po.add_argument("--section", help="the part of the post this image is for, e.g. 'conclusion'")
     po.add_argument("--dry-run", action="store_true")
     se = sub.add_parser("select", help=f"take 0-{MAX_PER_POST} favourites from a run into the post")
     se.add_argument("run_dir", type=Path)
