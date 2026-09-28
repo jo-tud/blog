@@ -42,6 +42,7 @@ def load_config():
         "title": "My Blog",
         "subtitle": "",
         "author": "Author",
+        "email": "",
         "repo": "https://github.com/jo-tud/blog",
     }
     if env_path.exists():
@@ -57,6 +58,8 @@ def load_config():
                 config["title"] = val
             elif key == "SITE_SUBTITLE":
                 config["subtitle"] = val
+            elif key == "SITE_EMAIL":
+                config["email"] = val
             elif key == "SITE_AUTHOR":
                 config["author"] = val
     # Override from env vars
@@ -64,6 +67,7 @@ def load_config():
     config["title"] = os.environ.get("SITE_TITLE", config["title"])
     config["subtitle"] = os.environ.get("SITE_SUBTITLE", config["subtitle"])
     config["author"] = os.environ.get("SITE_AUTHOR", config["author"])
+    config["email"] = os.environ.get("SITE_EMAIL", config["email"])
     config["repo"] = os.environ.get("SITE_REPO", config["repo"]).rstrip("/")
     return config
 
@@ -101,6 +105,31 @@ def sparse_strip(seed, cols, rows=3, gap=10, r=1.2, cls="sparse"):
         dots.append(f'<circle cx="{x:g}" cy="{y:g}" r="{rad:g}"{mark}/>')
     return (f'<svg class="{cls}" viewBox="0 0 {w} {ht}" width="{w}" height="{ht}" '
             f'aria-hidden="true">{"".join(dots)}</svg>')
+
+
+EMAIL_PLACEHOLDER = "%email%"
+
+
+def obfuscate_email(address):
+    """The contact address as HTML that reads and copies normally but is hard to harvest.
+
+    Every character is an HTML entity, and an HTML comment plus a hidden decoy sit inside the
+    address. In a honeypot study (Mortensen, 2026) each of these alone stopped 95-100% of
+    harvesters; people, screen readers and copy-paste still get the plain address.
+    """
+    local, _, domain = address.partition("@")
+    enc = lambda text: "".join(f"&#{ord(c)};" if i % 2 else f"&#x{ord(c):x};" for i, c in enumerate(text))
+    return (f'<span class="email">{enc(local)}<!-- --><span hidden>nospam</span>'
+            f"&#64;<!-- -->{enc(domain)}</span>")
+
+
+def insert_email(html, address, where):
+    """Replace %email% with the obfuscated address; the address itself never sits in the repo."""
+    if EMAIL_PLACEHOLDER not in html:
+        return html
+    if not address:
+        raise SystemExit(f"{where} uses {EMAIL_PLACEHOLDER}, but SITE_EMAIL is not set.")
+    return html.replace(EMAIL_PLACEHOLDER, obfuscate_email(address))
 
 
 def images_to_figures(html):
@@ -298,7 +327,7 @@ def build():
                 # nav: false keeps a page out of the header (e.g. Impressum: footer only)
                 "nav": meta.get("nav", True),
                 "lang": meta.get("lang", DEFAULT_LANG),
-                "html": md_parser.convert(match.group(2)),
+                "html": insert_email(md_parser.convert(match.group(2)), config["email"], f.name),
             })
 
     # Set up Jinja2

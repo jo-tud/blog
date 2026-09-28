@@ -31,6 +31,7 @@ jobs:
           SITE_TITLE: ${{ vars.SITE_TITLE || 'Blog' }}
           SITE_SUBTITLE: ${{ vars.SITE_SUBTITLE }}
           SITE_AUTHOR: ${{ vars.SITE_AUTHOR || 'Author' }}
+          SITE_EMAIL: ${{ vars.SITE_EMAIL }}
         run: python scripts/build.py
       - uses: actions/upload-pages-artifact@v3
         with:

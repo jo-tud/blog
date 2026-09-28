@@ -86,6 +86,7 @@ Optional repository variables (Settings → Secrets and variables → Actions �
 | `SITE_TITLE` | `Blog` |
 | `SITE_SUBTITLE` | none (shown under the title, used as meta and RSS description) |
 | `SITE_AUTHOR` | `Author` |
+| `SITE_EMAIL` | none. Contact address; pages use `%email%`, the build inserts it obfuscated (entities, comment, hidden decoy) so it never sits in the repo in plain text. The build stops if a page uses the placeholder and this is unset. |
 
 For local builds, the same keys can go in a `.env` file (not committed). Links are built from the path part of `SITE_URL` (e.g. `/blog`), so the site works both at a domain root and on a project page. `serve.py` always builds for `http://localhost:<port>`.
 
