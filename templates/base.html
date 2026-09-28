@@ -57,7 +57,7 @@
             }
         }
         *, *::before, *::after { box-sizing: border-box; }
-        html { background: var(--bg); }
+        html { background: var(--bg); scrollbar-gutter: stable; }  /* same width with or without a scrollbar, so the page does not jump */
         body {
             font-family: var(--sans);
             font-size: 18px;
