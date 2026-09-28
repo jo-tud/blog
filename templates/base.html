@@ -113,10 +113,10 @@
         article { margin-bottom: 64px; }
         article .sparse.motif { display: block; width: 100%; height: auto; max-width: 360px; margin: 28px 0 8px; }
         .meta { font-family: var(--mono); font-size: 13px; color: var(--fg-faint); line-height: 1.7; }
-        .meta span + span::before { content: " · "; }
+        .meta > span + span::before { content: " · "; }
         .meta a { color: var(--fg-dim); }
         .langs b { font-weight: 400; color: var(--fg-dim); }
-        .meta .langs a + b::before, .meta .langs b + a::before, .meta .langs a + a::before { content: " / "; color: var(--fg-faint); }
+        .meta .langs .sep { color: var(--fg-faint); }
         .post-list .langs { margin-left: 10px; font-family: var(--mono); font-size: 12px; }
         .post-list .langs a { color: var(--fg-faint); text-decoration: none; margin-right: 6px; }
         .post-list .langs a:hover { color: var(--fg); }
