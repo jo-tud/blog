@@ -1,0 +1,23 @@
+{
+  "model": "stability-ai/sdxl",
+  "version": "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+  "input": {
+    "prompt": "hubris",
+    "width": 1024,
+    "height": 1024,
+    "guidance_scale": 50,
+    "seed": 1,
+    "scheduler": "DDIM",
+    "num_inference_steps": 4
+  },
+  "varied": {
+    "scheduler": "DDIM",
+    "num_inference_steps": 4
+  },
+  "files": [
+    "001.png"
+  ],
+  "prediction": "c7fkck8a8hrmr0d0vsm84ervqc",
+  "predict_time": 1.284086935,
+  "source_run": "2026-09-26-174915-hybris-sdxl-sampler"
+}

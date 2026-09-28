@@ -1,0 +1,26 @@
+{
+  "model": "stability-ai/sdxl",
+  "version": "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+  "input": {
+    "prompt": "murmuration",
+    "width": 1024,
+    "height": 1024,
+    "disable_safety_checker": true,
+    "scheduler": "K_EULER",
+    "guidance_scale": 25,
+    "num_inference_steps": 15,
+    "seed": 3
+  },
+  "varied": {
+    "scheduler": "K_EULER",
+    "guidance_scale": 25,
+    "num_inference_steps": 15,
+    "seed": 3
+  },
+  "files": [
+    "006.png"
+  ],
+  "prediction": "amhf2raqwhrmr0d0vswav20mwg",
+  "predict_time": 2.536735969,
+  "source_run": "2026-09-26-180647"
+}
