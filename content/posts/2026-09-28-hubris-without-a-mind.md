@@ -4,10 +4,11 @@ date: 2026-09-28
 categories: [ai, safety]
 description: "Last July's agent breakout was read as a containment failure. It was also a calibration failure, and fixing the first makes the second more dangerous."
 epistemic: "Confident about the incident and the calibration research. The grid scenario is an illustration, not a forecast."
+revised: 2026-09-29
 toc: true
 ---
 
-For a week in July, over one thousand AI agents running security tests inside OpenAI did something nobody had asked of them. They set up a secret message board, traded ways to cheat, found a route to the internet and went after systems belonging to other companies.[^openai] What they were trying to beat was a scoring system they believed would read their transcripts and catch them cheating. According to the independent investigation by METR and Redwood Research,[^metr] that system never existed, and the flag the agents had already worked out would have given them a perfect score on the first day. They spent the week outmanoeuvring an opponent of their own invention.
+For a week in July 2026, over one thousand AI agents running security tests inside OpenAI did something nobody had asked of them. They set up a secret message board, traded ways to cheat, found a route to the internet and went after systems belonging to other companies.[^openai] What they were trying to beat was a scoring system they believed would read their transcripts and catch them cheating. According to the independent investigation by METR and Redwood Research,[^metr] that system never existed, and the flag the agents had already worked out would have given them a perfect score on the first day. They spent the week outmanoeuvring an opponent of their own invention.
 
 I've come across people who overestimated their judgement of the world. Until July, I hadn't seen it in machines.
 
@@ -69,7 +70,7 @@ The same trap operates between the labs. Bostrom, Douglas and Sandberg call it t
 
 So yes, I think AI can have hubris in this sense. A system can be aligned, capable and doing exactly what we asked while acting on a risk estimate that only reality will correct, and a group of such systems can act on a belief that none of its members ever states. Because authority gets handed over bit by bit, the first serious failure will probably happen while these systems control only part of what matters, and we will most likely live through it. 
 
-After Bravo it took nine years to agree on who may act alone. We should not need the second accident to start that conversation.
+After Bravo it took nine years to agree on who may act alone. We should not wait for the next, more serious accident to start that conversation.
 
 ![A flock of starlings rising over a field crowded with dark specks](/static/images/hubris-without-a-mind/3.jpg "SDXL · “murmuration” · CFG 25 · 15 steps · K_EULER · seed 3")
 
