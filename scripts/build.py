@@ -43,6 +43,7 @@ def load_config():
         "subtitle": "",
         "author": "Author",
         "email": "",
+        "goatcounter": "",
         "repo": "https://github.com/jo-tud/blog",
     }
     if env_path.exists():
@@ -62,12 +63,16 @@ def load_config():
                 config["email"] = val
             elif key == "SITE_AUTHOR":
                 config["author"] = val
+            elif key == "SITE_GOATCOUNTER":
+                config["goatcounter"] = val
     # Override from env vars
     config["url"] = os.environ.get("SITE_URL", config["url"]).rstrip("/")
     config["title"] = os.environ.get("SITE_TITLE", config["title"])
     config["subtitle"] = os.environ.get("SITE_SUBTITLE", config["subtitle"])
     config["author"] = os.environ.get("SITE_AUTHOR", config["author"])
     config["email"] = os.environ.get("SITE_EMAIL", config["email"])
+    # GoatCounter site code (e.g. "sparserewards"). Unset locally, so previews are not counted.
+    config["goatcounter"] = os.environ.get("SITE_GOATCOUNTER", config["goatcounter"])
     config["repo"] = os.environ.get("SITE_REPO", config["repo"]).rstrip("/")
     return config
 
@@ -338,7 +343,7 @@ def build():
     for item in translations + pages:
         item["html"] = prefix_root_links(item["html"], base_path)
     site = {"url": base_path, "absolute_url": config["url"], "title": config["title"], "subtitle": config["subtitle"], "author": config["author"],
-            "repo": config["repo"], "mark": sparse_strip(config["title"], cols=5, gap=8, r=1.5)}
+            "repo": config["repo"], "goatcounter": config["goatcounter"], "mark": sparse_strip(config["title"], cols=5, gap=8, r=1.5)}
     common = {"site": site, "categories": all_categories, "pages": pages}
 
     # Generate index
