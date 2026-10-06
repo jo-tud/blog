@@ -8,7 +8,12 @@
     <meta name="citation_journal_title" content="{{ site.title }}">
     {% if canonical_url %}<meta name="citation_public_url" content="{{ canonical_url }}">{% endif %}
     <meta name="citation_language" content="{{ post.lang }}">
-    {% if post.versions | length > 1 %}{% for v in post.versions %}<link rel="alternate" hreflang="{{ v.lang }}" href="{{ site.absolute_url }}/{{ v.path }}">
+    <meta property="article:published_time" content="{{ post.date.strftime('%Y-%m-%d') }}">
+    {% if post.revised %}<meta property="article:modified_time" content="{{ post.revised }}">{% endif %}
+    <meta property="article:author" content="{{ site.author }}">
+    {% for cat in post.categories %}<meta property="article:tag" content="{{ cat }}">
+    {% endfor %}{% for v in post.versions if v is not sameas post %}<meta property="og:locale:alternate" content="{{ {'de': 'de_DE'}.get(v.lang, 'en_US') }}">
+    {% endfor %}    {% if post.versions | length > 1 %}{% for v in post.versions %}<link rel="alternate" hreflang="{{ v.lang }}" href="{{ site.absolute_url }}/{{ v.path }}">
     {% endfor %}{% endif %}{% endblock %}
 {% block content %}
 <article>

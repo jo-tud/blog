@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 import markdown
 import yaml
 from jinja2 import Environment, FileSystemLoader
+from PIL import Image
 from pygments.formatters import HtmlFormatter
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -156,6 +157,28 @@ def images_to_figures(html):
     return re.sub(r'<p><img alt="([^"]*)" src="([^"]*)" title="([^"]*)" ?/?></p>', figure, html)
 
 
+OG_SIZE = (1200, 630)  # what LinkedIn, Mastodon & co. show as a large preview
+OG_DEFAULT = "static/og-card.png"  # made by scripts/make_og_card.py
+
+
+def make_og_image(source, out):
+    """Crop a post image to 1200x630 for link previews, honouring `#focus=N` like figures do."""
+    focus = re.search(r"#focus=(\d{1,3})$", source)
+    focus = min(int(focus.group(1)), 100) / 100 if focus else 0.5
+    path = ROOT / re.sub(r"#focus=\d{1,3}$", "", source).lstrip("/")
+    img = Image.open(path).convert("RGB")
+    w, h = img.size
+    target = OG_SIZE[0] / OG_SIZE[1]
+    if w / h > target:  # too wide: crop the sides, centred
+        cw = round(h * target)
+        box = ((w - cw) // 2, 0, (w - cw) // 2 + cw, h)
+    else:  # too tall: crop top and bottom around the focus
+        ch = round(w / target)
+        top = round((h - ch) * focus)
+        box = (0, top, w, top + ch)
+    img.crop(box).resize(OG_SIZE, Image.LANCZOS).save(out, "JPEG", quality=85, optimize=True)
+
+
 def footnotes_to_sidenotes(html):
     """Copy each footnote next to its reference as a sidenote.
 
@@ -233,6 +256,10 @@ def parse_post(filepath):
         },
     )
     html = md.convert(body)
+    # Link preview image: `image:` in the front matter, else the post's first image
+    first_image = re.search(r"!\[([^\]]*)\]\((/static/[^)\s]+)", body)
+    og_source = meta.get("image") or (first_image.group(2) if first_image else None)
+    og_alt = first_image.group(1) if first_image and not meta.get("image") else ""
     html = footnotes_to_sidenotes(html)
     html = images_to_figures(html)
 
@@ -268,6 +295,8 @@ def parse_post(filepath):
         "lang": lang,
         "lang_name": LANG_NAMES.get(lang, lang),
         "motif": sparse_strip(slug, cols=36, cls="sparse motif"),
+        "og_source": og_source,
+        "og_alt": og_alt,
     }
 
 
@@ -345,10 +374,29 @@ def build():
     site = {"url": base_path, "absolute_url": config["url"], "title": config["title"], "subtitle": config["subtitle"], "author": config["author"],
             "repo": config["repo"], "goatcounter": config["goatcounter"], "mark": sparse_strip(config["title"], cols=5, gap=8, r=1.5)}
     common = {"site": site, "categories": all_categories, "pages": pages}
+    absolute = config["url"].rstrip("/")
+    og_default = {"image": f"{absolute}/{OG_DEFAULT}", "image_alt": f"{config['title']}: {config['subtitle']}"}
+
+    # Link-preview images: one per post (shared by its translations), cut from its first image
+    for versions in groups.values():
+        primary = versions[0]
+        og_image = og_default
+        if primary["og_source"]:
+            out_dir = SITE_DIR / primary["path"]
+            out_dir.mkdir(parents=True, exist_ok=True)
+            make_og_image(primary["og_source"], out_dir / "og.jpg")
+            og_image = {"image": f"{absolute}/{primary['path']}og.jpg", "image_alt": primary["og_alt"]}
+        for v in versions:
+            v["og"] = {"type": "article", "title": v["title"], "description": v["description"],
+                       "url": f"{absolute}/{v['path']}", **og_image}
+            if primary["og_source"] and v["og_alt"]:
+                v["og"]["image_alt"] = v["og_alt"]  # alt text in the version's own language
 
     # Generate index
     tpl = env.get_template("index.html")
-    html = tpl.render(posts=posts, **common)
+    og = {"type": "website", "title": config["title"], "description": config["subtitle"],
+          "url": f"{absolute}/", **og_default}
+    html = tpl.render(posts=posts, og=og, canonical_url=og["url"], **common)
     (SITE_DIR / "index.html").write_text(html, encoding="utf-8")
 
     # Generate individual posts
@@ -360,7 +408,8 @@ def build():
             post=post,
             lang=post["lang"],
             t=LABELS.get(post["lang"], LABELS[DEFAULT_LANG]),
-            canonical_url=f"{config['url'].rstrip('/')}/{post['path']}",
+            canonical_url=post["og"]["url"],
+            og=post["og"],
             **common,
         )
         (post_dir / "index.html").write_text(html, encoding="utf-8")
@@ -384,7 +433,9 @@ def build():
     for page in pages:
         page_dir = SITE_DIR / page["slug"]
         page_dir.mkdir(parents=True, exist_ok=True)
-        html = tpl.render(page=page, lang=page["lang"], **common)
+        og = {"type": "website", "title": page["title"], "description": config["subtitle"],
+              "url": f"{absolute}/{page['slug']}/", **og_default}
+        html = tpl.render(page=page, lang=page["lang"], og=og, canonical_url=og["url"], **common)
         (page_dir / "index.html").write_text(html, encoding="utf-8")
 
     # Generate RSS feed
