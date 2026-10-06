@@ -2,6 +2,7 @@
 """Static site generator. Converts markdown posts to HTML."""
 
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -45,6 +46,7 @@ def load_config():
         "author": "Author",
         "email": "",
         "goatcounter": "",
+        "author_links": "",
         "repo": "https://github.com/jo-tud/blog",
     }
     if env_path.exists():
@@ -66,6 +68,8 @@ def load_config():
                 config["author"] = val
             elif key == "SITE_GOATCOUNTER":
                 config["goatcounter"] = val
+            elif key == "SITE_AUTHOR_LINKS":
+                config["author_links"] = val
     # Override from env vars
     config["url"] = os.environ.get("SITE_URL", config["url"]).rstrip("/")
     config["title"] = os.environ.get("SITE_TITLE", config["title"])
@@ -74,6 +78,8 @@ def load_config():
     config["email"] = os.environ.get("SITE_EMAIL", config["email"])
     # GoatCounter site code (e.g. "sparserewards"). Unset locally, so previews are not counted.
     config["goatcounter"] = os.environ.get("SITE_GOATCOUNTER", config["goatcounter"])
+    # Profiles that identify the author (structured data `sameAs`), separated by spaces
+    config["author_links"] = os.environ.get("SITE_AUTHOR_LINKS", config["author_links"]).split()
     config["repo"] = os.environ.get("SITE_REPO", config["repo"]).rstrip("/")
     return config
 
@@ -159,16 +165,18 @@ def images_to_figures(html):
 
 OG_SIZE = (1200, 630)  # what LinkedIn, Mastodon & co. show as a large preview
 OG_DEFAULT = "static/og-card.png"  # made by scripts/make_og_card.py
+# Google recommends 16:9, 4:3 and 1:1 images in Article structured data
+SCHEMA_SIZES = {"16x9": (1200, 675), "4x3": (1200, 900), "1x1": (1200, 1200)}
 
 
-def make_og_image(source, out):
-    """Crop a post image to 1200x630 for link previews, honouring `#focus=N` like figures do."""
+def make_og_image(source, out, size=OG_SIZE):
+    """Crop a post image to `size` (link previews, structured data), honouring `#focus=N` like figures do."""
     focus = re.search(r"#focus=(\d{1,3})$", source)
     focus = min(int(focus.group(1)), 100) / 100 if focus else 0.5
     path = ROOT / re.sub(r"#focus=\d{1,3}$", "", source).lstrip("/")
     img = Image.open(path).convert("RGB")
     w, h = img.size
-    target = OG_SIZE[0] / OG_SIZE[1]
+    target = size[0] / size[1]
     if w / h > target:  # too wide: crop the sides, centred
         cw = round(h * target)
         box = ((w - cw) // 2, 0, (w - cw) // 2 + cw, h)
@@ -176,7 +184,7 @@ def make_og_image(source, out):
         ch = round(w / target)
         top = round((h - ch) * focus)
         box = (0, top, w, top + ch)
-    img.crop(box).resize(OG_SIZE, Image.LANCZOS).save(out, "JPEG", quality=85, optimize=True)
+    img.crop(box).resize(size, Image.LANCZOS).save(out, "JPEG", quality=85, optimize=True)
 
 
 def footnotes_to_sidenotes(html):
@@ -300,6 +308,73 @@ def parse_post(filepath):
     }
 
 
+def article_jsonld(post, versions, images, config, absolute):
+    """schema.org BlogPosting for one language version, as a JSON string for a <script> tag."""
+    author = {"@type": "Person", "name": config["author"]}
+    if config["author_links"]:
+        author["url"] = config["author_links"][0]
+        author["sameAs"] = config["author_links"]
+    data = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": post["title"],
+        "description": post["description"],
+        "inLanguage": post["lang"],
+        "datePublished": post["date"].strftime("%Y-%m-%d"),
+        "dateModified": post["revised"] or post["date"].strftime("%Y-%m-%d"),
+        "url": f"{absolute}/{post['path']}",
+        "mainEntityOfPage": f"{absolute}/{post['path']}",
+        "image": images,
+        "author": author,
+        "publisher": author,
+        "isPartOf": {"@type": "Blog", "name": config["title"], "url": f"{absolute}/"},
+        "keywords": post["categories"],
+    }
+    primary = versions[0]
+    if post is not primary:
+        data["translationOfWork"] = {"@id": f"{absolute}/{primary['path']}"}
+    else:
+        others = [f"{absolute}/{v['path']}" for v in versions[1:]]
+        if others:
+            data["workTranslation"] = [{"@id": u} for u in others]
+    # "</" inside a <script> would end it early
+    return json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+
+
+def write_sitemap_and_robots(translations, all_categories, pages, absolute):
+    """sitemap.xml with honest lastmod (date or `revised`, never the build date) and robots.txt.
+
+    robots.txt lets every crawler in, including AI training and AI search bots: decided
+    2026-10-06, the blog wants to be found, read and cited.
+    """
+    def lastmod(p):
+        return p["revised"] or p["date"].strftime("%Y-%m-%d")
+
+    urls = []
+    newest = max((lastmod(p) for p in translations), default=None)
+    urls.append((f"{absolute}/", newest))
+    for p in translations:
+        urls.append((f"{absolute}/{p['path']}", lastmod(p)))
+    for cat in all_categories:
+        dates = [lastmod(p) for p in translations if cat in p["categories"]]
+        urls.append((f"{absolute}/categories/{cat.lower()}/", max(dates) if dates else None))
+    for page in pages:
+        urls.append((f"{absolute}/{page['slug']}/", None))
+    entries = "".join(
+        f"  <url><loc>{loc}</loc>{f'<lastmod>{mod}</lastmod>' if mod else ''}</url>\n"
+        for loc, mod in urls
+    )
+    (SITE_DIR / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{entries}</urlset>\n", encoding="utf-8")
+    (SITE_DIR / "robots.txt").write_text(
+        "# Search engines, AI search and AI training crawlers are all welcome.\n"
+        "User-agent: *\n"
+        "Allow: /\n\n"
+        f"Sitemap: {absolute}/sitemap.xml\n", encoding="utf-8")
+
+
 def build():
     """Build the static site."""
     config = load_config()
@@ -386,11 +461,18 @@ def build():
             out_dir.mkdir(parents=True, exist_ok=True)
             make_og_image(primary["og_source"], out_dir / "og.jpg")
             og_image = {"image": f"{absolute}/{primary['path']}og.jpg", "image_alt": primary["og_alt"]}
+            schema_images = []
+            for name, size in SCHEMA_SIZES.items():
+                make_og_image(primary["og_source"], out_dir / f"image-{name}.jpg", size)
+                schema_images.append(f"{absolute}/{primary['path']}image-{name}.jpg")
+        else:
+            schema_images = [og_default["image"]]
         for v in versions:
             v["og"] = {"type": "article", "title": v["title"], "description": v["description"],
                        "url": f"{absolute}/{v['path']}", **og_image}
             if primary["og_source"] and v["og_alt"]:
                 v["og"]["image_alt"] = v["og_alt"]  # alt text in the version's own language
+            v["jsonld"] = article_jsonld(v, versions, schema_images, config, absolute)
 
     # Generate index
     tpl = env.get_template("index.html")
@@ -420,7 +502,11 @@ def build():
         cat_posts = [p for p in posts if cat in p["categories"]]
         cat_dir = SITE_DIR / "categories" / cat.lower()
         cat_dir.mkdir(parents=True, exist_ok=True)
+        og = {"type": "website", "title": f"{cat.lower()} · {config['title']}", "description": config["subtitle"],
+              "url": f"{absolute}/categories/{cat.lower()}/", **og_default}
         html = tpl.render(
+            og=og,
+            canonical_url=og["url"],
             category=cat,
             posts=cat_posts,
             active_category=cat,
@@ -437,6 +523,8 @@ def build():
               "url": f"{absolute}/{page['slug']}/", **og_default}
         html = tpl.render(page=page, lang=page["lang"], og=og, canonical_url=og["url"], **common)
         (page_dir / "index.html").write_text(html, encoding="utf-8")
+
+    write_sitemap_and_robots(translations, all_categories, pages, absolute)
 
     # Generate RSS feed
     tpl = env.get_template("feed.xml")

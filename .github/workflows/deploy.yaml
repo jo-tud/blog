@@ -33,6 +33,7 @@ jobs:
           SITE_AUTHOR: ${{ vars.SITE_AUTHOR || 'Author' }}
           SITE_EMAIL: ${{ vars.SITE_EMAIL }}
           SITE_GOATCOUNTER: ${{ vars.SITE_GOATCOUNTER }}
+          SITE_AUTHOR_LINKS: ${{ vars.SITE_AUTHOR_LINKS }}
         run: python scripts/build.py
       - uses: actions/upload-pages-artifact@v3
         with:

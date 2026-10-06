@@ -14,7 +14,8 @@
     {% for cat in post.categories %}<meta property="article:tag" content="{{ cat }}">
     {% endfor %}{% for v in post.versions if v is not sameas post %}<meta property="og:locale:alternate" content="{{ {'de': 'de_DE'}.get(v.lang, 'en_US') }}">
     {% endfor %}    {% if post.versions | length > 1 %}{% for v in post.versions %}<link rel="alternate" hreflang="{{ v.lang }}" href="{{ site.absolute_url }}/{{ v.path }}">
-    {% endfor %}{% endif %}{% endblock %}
+    {% endfor %}<link rel="alternate" hreflang="x-default" href="{{ site.absolute_url }}/{{ post.versions[0].path }}">
+    {% endif %}<script type="application/ld+json">{{ post.jsonld | safe }}</script>{% endblock %}
 {% block content %}
 <article>
     <h1>{{ post.title }}</h1>
