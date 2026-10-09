@@ -102,3 +102,7 @@ scripts/serve.py     ← Local dev server
 WRITING.md           ← Markdown reference for posts
 illustrations/       ← Parameter sweeps on Replicate image models (sweep.py); raw runs are not committed
 ```
+
+## License
+
+The code is MIT-licensed (see [LICENSE](LICENSE)). The articles and images (`content/`, `static/images/`) are © Johannes Pfeffer under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/); see [LICENSE-CONTENT.md](LICENSE-CONTENT.md).

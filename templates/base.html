@@ -227,7 +227,7 @@
             {% block content %}{% endblock %}
         </main>
         <footer>
-            <span>© {{ site.author }}</span>
+            <span>© {{ site.author }} · <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" rel="license">CC BY-NC-ND 4.0</a></span>
             <a href="{{ site.url }}/feed.xml">RSS</a>
             {% for page in pages %}<a href="{{ site.url }}/{{ page.slug }}/">{{ page.title }}</a>{% endfor %}
             <span class="colophon">Set in IBM Plex · <a href="{{ site.repo }}">source</a></span>
